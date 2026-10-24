@@ -651,8 +651,20 @@ export default function Home() {
       {/* How it works */}
       <section
         id="how-it-works"
-        className="scroll-mt-24 py-20 sm:py-24"
+        className="relative isolate scroll-mt-24 overflow-hidden bg-gradient-to-br from-[#F7F9F6] via-[#DDF3E7] to-[#82A995]/50 py-20 sm:py-24"
       >
+        {/* Soft gradient shapes */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+        >
+          <div className="absolute -left-40 -top-24 h-[500px] w-[700px] rounded-[45%] bg-[#B8E8D0]/60 blur-3xl" />
+
+          <div className="absolute -right-40 top-0 h-[450px] w-[600px] rounded-full bg-[#82A995]/30 blur-3xl" />
+
+          <div className="absolute -bottom-72 left-[15%] h-[500px] w-[1000px] rounded-[50%] bg-gradient-to-r from-[#DDF3E7]/80 via-[#B8E8D0]/70 to-[#F7F9F6]/90 blur-2xl" />
+        </div>
+
         <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
           <SectionHeading
             label="Simple setup"
@@ -664,15 +676,17 @@ export default function Home() {
             {steps.map((step) => (
               <div
                 key={step.number}
-                className="rounded-2xl border border-slate-200 bg-white p-7 transition hover:-translate-y-1 hover:shadow-lg hover:shadow-brand-dark/5"
+                className="rounded-2xl border border-white/80 bg-white/90 p-7 shadow-lg shadow-[#173F35]/5 backdrop-blur-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-[#173F35]/10"
               >
-                <span className="text-sm font-extrabold tracking-widest text-brand">
+                <span className="text-sm font-extrabold tracking-widest text-[#32866B]">
                   {step.number}
                 </span>
-                <h3 className="mt-5 text-xl font-bold text-brand-dark">
+
+                <h3 className="mt-5 text-xl font-bold text-[#173F35]">
                   {step.title}
                 </h3>
-                <p className="mt-3 leading-7 text-slate-600">
+
+                <p className="mt-3 leading-7 text-[#53645D]">
                   {step.description}
                 </p>
               </div>
