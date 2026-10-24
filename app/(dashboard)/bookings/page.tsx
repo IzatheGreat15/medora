@@ -20,6 +20,7 @@ import {
     Mail,
     StickyNote,
 } from "lucide-react";
+import { getCurrentDate } from "@/lib/date";
 
 type BookingStatus = "Pending" | "Confirmed" | "Declined" | "Completed";
 
@@ -140,9 +141,13 @@ function formatDate(date: string) {
     });
 }
 
-function formatTime(time: string) {
+function formatTime(time: string, currentDate: Date|null) {
+    if (currentDate === null) {
+        return;
+    }
+
     const [hours, minutes] = time.split(":").map(Number);
-    const date = new Date();
+    const date = currentDate;
     date.setHours(hours, minutes, 0, 0);
 
     return date.toLocaleTimeString("en-PH", {
@@ -183,6 +188,7 @@ export default function BookingsPage() {
     const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
     const [actionMessage, setActionMessage] = useState("");
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [currentDate, setCurrentDate] = useState<Date | null>(null);
     const [newBooking, setNewBooking] = useState({
         patient: "",
         email: "",
@@ -238,6 +244,10 @@ export default function BookingsPage() {
 
         return filteredBookings.slice(startIndex, endIndex);
     }, [filteredBookings, currentPage, pageSize]);
+
+    useEffect(() => {
+        setCurrentDate(getCurrentDate());
+    });
 
     const startItem =
         totalBookings === 0 ? 0 : (currentPage - 1) * pageSize + 1;
@@ -517,7 +527,7 @@ export default function BookingsPage() {
                                             {formatDate(booking.date)}
                                         </p>
                                         <p className="mt-1 text-xs text-slate-500">
-                                            {formatTime(booking.time)}
+                                            {formatTime(booking.time, currentDate)}
                                         </p>
                                     </td>
 
@@ -950,7 +960,7 @@ export default function BookingsPage() {
                                     <DetailRow
                                         icon={<Clock3 size={19} />}
                                         label="Time"
-                                        value={`${formatTime(selectedBooking.time)} · ${selectedBooking.duration} minutes`}
+                                        value={`${formatTime(selectedBooking.time, currentDate)} · ${selectedBooking.duration} minutes`}
                                     />
                                     <DetailRow
                                         icon={<Building2 size={19} />}

@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { usePathname } from "next/navigation";
 import DashboardSidebar from "@/components/dashboard/Sidebar";
 import DashboardNavbar from "@/components/dashboard/Navbar";
@@ -13,7 +12,6 @@ export default function DashboardLayout({
 }>) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const pathname = usePathname();
 
   function closeMobileMenu() {
     setMobileMenuOpen(false);
@@ -24,37 +22,42 @@ export default function DashboardLayout({
       <div className="flex min-h-screen">
         {/* Desktop sidebar */}
         <div className="sticky top-0 hidden h-screen shrink-0 lg:block">
-          <DashboardSidebar
-            collapsed={collapsed}
-            onToggle={() => setCollapsed((value) => !value)}
-          />
-        </div>
+  <Suspense
+    fallback={<div className="h-screen w-64 bg-[#173F35]" />}
+  >
+    <DashboardSidebar
+      collapsed={collapsed}
+      onToggle={() => setCollapsed((value) => !value)}
+    />
+  </Suspense>
+</div>
 
         {/* Mobile sidebar */}
         {mobileMenuOpen && (
-          <div className="fixed inset-0 z-50 lg:hidden">
-            <button
-              type="button"
-              aria-label="Close navigation"
-              onClick={closeMobileMenu}
-              className="absolute inset-0 bg-slate-950/40"
-            />
-            <div className="absolute inset-y-0 left-0">
-              <DashboardSidebar
-                collapsed={false}
-                onToggle={closeMobileMenu}
-                onNavigate={closeMobileMenu}
-              />
-            </div>
-          </div>
+          <div className="absolute inset-y-0 left-0">
+  <Suspense
+    fallback={<div className="h-screen w-64 bg-[#173F35]" />}
+  >
+    <DashboardSidebar
+      collapsed={false}
+      onToggle={closeMobileMenu}
+      onNavigate={closeMobileMenu}
+    />
+  </Suspense>
+</div>
         )}
 
         {/* Main workspace */}
         <div className="flex min-w-0 flex-1 flex-col">
-          <DashboardNavbar
-            key={pathname}
-            onMenuClick={() => setMobileMenuOpen(true)}
-          />
+          <Suspense
+            fallback={
+              <div className="h-16 shrink-0 border-b border-slate-200 bg-white" />
+            }
+          >
+            <DashboardNavbarWithPathname
+              onMenuClick={() => setMobileMenuOpen(true)}
+            />
+          </Suspense>
 
           <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
             {children}
@@ -62,5 +65,20 @@ export default function DashboardLayout({
         </div>
       </div>
     </div>
+  );
+}
+
+function DashboardNavbarWithPathname({
+  onMenuClick,
+}: {
+  onMenuClick: () => void;
+}) {
+  const pathname = usePathname();
+
+  return (
+    <DashboardNavbar
+      key={pathname}
+      onMenuClick={onMenuClick}
+    />
   );
 }
