@@ -247,7 +247,7 @@ export default function BookingsPage() {
 
     useEffect(() => {
         setCurrentDate(getCurrentDate());
-    });
+    }, []);
 
     const startItem =
         totalBookings === 0 ? 0 : (currentPage - 1) * pageSize + 1;
@@ -475,7 +475,6 @@ export default function BookingsPage() {
                         className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#176B55] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#173F35]"
                     >
                         <Plus size={17} />
-                        New booking
                     </button>
                 </div>
 
@@ -864,8 +863,7 @@ export default function BookingsPage() {
                                     type="submit"
                                     className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#176B55] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#173F35]"
                                 >
-                                    <Plus size={17} />
-                                    Add booking
+                                    Save
                                 </button>
                             </div>
                         </form>

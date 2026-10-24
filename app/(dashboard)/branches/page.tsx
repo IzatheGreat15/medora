@@ -263,7 +263,6 @@ export default function BranchesPage() {
                         className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#176B55] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#173F35]"
                     >
                         <Plus size={17} />
-                        Add branch
                     </button>
                 </div>
 
@@ -481,8 +480,7 @@ export default function BranchesPage() {
                                     type="submit"
                                     className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#176B55] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#173F35]"
                                 >
-                                    <Plus size={17} />
-                                    Add branch
+                                    Save
                                 </button>
                             </div>
                         </form>

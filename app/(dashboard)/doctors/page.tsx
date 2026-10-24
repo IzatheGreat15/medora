@@ -364,8 +364,7 @@ function AddDoctorModal({
                             type="submit"
                             className="inline-flex items-center gap-2 rounded-xl bg-[#176B55] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#125744] focus:outline-none focus:ring-4 focus:ring-[#DDF3E7]"
                         >
-                            <Plus className="h-4 w-4" />
-                            Add doctor
+                            Save
                         </button>
                     </div>
                 </form>
@@ -464,20 +463,6 @@ export default function DoctorsPage() {
                 />
             </section>
 
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                </div>
-
-                <button
-                    type="button"
-                    onClick={() => setIsAddModalOpen(true)}
-                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#176B55] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#125744] focus:outline-none focus:ring-4 focus:ring-[#DDF3E7]"
-                >
-                    <Plus className="h-4 w-4" />
-                    Add doctor
-                </button>
-            </div>
-
             {/* Doctors table */}
             <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
                 <DoctorsTable
@@ -488,6 +473,7 @@ export default function DoctorsPage() {
                     emptyMessage="No doctors found. Add your first doctor to get started."
                     onDoctorEdit={handleEditDoctor}
                     onDoctorDelete={handleDeleteDoctor}
+                    onDoctorAdd={() => setIsAddModalOpen(true)}
                 />
             </section>
 

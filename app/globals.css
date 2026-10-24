@@ -27,6 +27,10 @@ body {
   color: #173f35;
 }
 
+button {
+  cursor: pointer;
+}
+
 /* Hide scrollbar but keep scrolling enabled */
 * {
   scrollbar-width: none; /* Firefox */
