@@ -507,7 +507,7 @@ export default function Home() {
 
 
       {/* Quick benefits */}
-      <section className="border-y border-slate-200/70 bg-white">
+      <section className="border-y border-slate-200/70 bg-[#173F35] text-white">
         <div className="mx-auto grid max-w-7xl grid-cols-2 gap-5 px-5 py-8 sm:px-8 md:grid-cols-4 lg:px-10">
           {[
             { icon: Building2, text: "Organize your clinic" },
@@ -519,8 +519,8 @@ export default function Home() {
               key={text}
               className="flex items-center justify-center gap-3 py-2"
             >
-              <Icon size={27} className="shrink-0 text-brand" />
-              <span className="text-sm font-semibold text-brand-dark">
+              <Icon size={27} className="shrink-0 text-white" />
+              <span className="text-sm font-semibold text-white">
                 {text}
               </span>
             </div>
