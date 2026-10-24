@@ -26,3 +26,13 @@ body {
   background: #ddf3e7;
   color: #173f35;
 }
+
+/* Hide scrollbar but keep scrolling enabled */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer / legacy Edge */
+}
+
+*::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, newer Chromium browsers */
+}
