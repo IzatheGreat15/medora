@@ -105,11 +105,6 @@ export default function DashboardNavbar({
               Clinic administrator
             </span>
           </span>
-
-          <ChevronDown
-            size={16}
-            className="hidden text-slate-400 sm:block"
-          />
         </button>
       </div>
     </header>
