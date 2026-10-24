@@ -49,11 +49,11 @@ const bottomNavigation = [
     href: "/settings",
     icon: Settings,
   },
-  {
-    label: "Help & support",
-    href: "/support",
-    icon: HelpCircle,
-  },
+  // {
+  //   label: "Help & support",
+  //   href: "/support",
+  //   icon: HelpCircle,
+  // },
 ];
 
 type DashboardSidebarProps = {
@@ -199,7 +199,7 @@ export default function DashboardSidebar({
       {!collapsed && (
         <div className="shrink-0 border-t border-white/10 p-4">
           <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-            <p className="truncate text-sm font-semibold">Your Clinic</p>
+            <p className="truncate text-sm font-semibold">Medora Family Clinic</p>
             <p className="mt-1 text-xs text-white/55">
               Clinic workspace
             </p>

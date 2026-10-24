@@ -5,6 +5,9 @@ import { useEffect, useMemo, useState } from "react";
 import {
     Search,
     CalendarDays,
+    Calendar,
+    ChevronLeft,
+    ChevronRight,
     Clock3,
     Users,
     Building2,
@@ -201,6 +204,8 @@ export default function BookingsPage() {
         duration: "30",
         notes: "",
     });
+    const [viewMode, setViewMode] = useState<"table" | "calendar">("table");
+    const [calendarWeekOffset, setCalendarWeekOffset] = useState(0);
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
 
@@ -253,6 +258,59 @@ export default function BookingsPage() {
         totalBookings === 0 ? 0 : (currentPage - 1) * pageSize + 1;
 
     const endItem = Math.min(currentPage * pageSize, totalBookings);
+
+    const weekDays = useMemo(() => {
+        if (currentDate === null) {
+            return [];
+        }
+        const base = currentDate;
+        base.setHours(12, 0, 0, 0);
+        const day = base.getDay();
+        base.setDate(base.getDate() - ((day + 6) % 7) + calendarWeekOffset * 7);
+        return Array.from({ length: 7 }, (_, index) => {
+            const date = new Date(base);
+            date.setDate(base.getDate() + index);
+            return date;
+        });
+    }, [currentDate, calendarWeekOffset]);
+
+    const weekStart = weekDays[0];
+    const weekEnd = weekDays[6];
+    const calendarHours = Array.from({ length: 11 }, (_, index) => index + 8); // 8 AM–6 PM
+
+    function toDateKey(date: Date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+    }
+
+    function formatHour(hour: number) {
+        const suffix = hour >= 12 ? "PM" : "AM";
+        const displayHour = hour % 12 || 12;
+        return `${displayHour}:00 ${suffix}`;
+    }
+
+    function formatWeekRange(start: Date, end: Date) {
+        const sameMonth = start.getMonth() === end.getMonth();
+        const monthFormat: Intl.DateTimeFormatOptions = { month: "short" };
+        const startLabel = `${start.toLocaleDateString("en-PH", monthFormat)} ${start.getDate()}`;
+        const endLabel = `${!sameMonth ? end.toLocaleDateString("en-PH", monthFormat) + " " : ""}${end.getDate()}, ${end.getFullYear()}`;
+        return `${startLabel} – ${endLabel}`;
+    }
+
+    function getBookingMinutes(booking: Booking) {
+        const [hours, minutes] = booking.time.split(":").map(Number);
+        return hours * 60 + minutes;
+    }
+
+    function getCalendarBookingStyle(booking: Booking) {
+        const startMinutes = getBookingMinutes(booking);
+        const top = ((startMinutes - 8 * 60) / 60) * 64;
+        const height = Math.max((booking.duration / 60) * 64, 58);
+        return { top: `${top}px`, height: `${height}px` };
+    }
+
 
     const counts = {
         all: bookings.length,
@@ -394,293 +452,142 @@ export default function BookingsPage() {
                 ))}
             </section>
 
-            {/* Table */}
+            {/* Bookings: table and calendar views */}
             <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/[0.02]">
-                {/* Search, filters, results count, and Add button */}
-                <div className="flex items-center justify-between gap-2 border-b border-slate-100 p-3 sm:gap-3 sm:p-4">
-                    {/* Results count — hidden on very small screens */}
+                {/* Search, filters, view switcher, and add button */}
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-3 sm:p-4">
                     <p className="hidden shrink-0 text-sm text-slate-500 md:block">
-                        <span className="font-semibold text-[#173F35]">
-                            {filteredBookings.length}
-                        </span>{" "}
-                        found
+                        <span className="font-semibold text-[#173F35]">{filteredBookings.length}</span> found
                     </p>
 
-                    <div className="flex min-w-0 flex-1 items-center justify-end gap-2 sm:gap-4">
-                        {/* Search */}
-                        <div className="relative min-w-0 flex-1 sm:max-w-xs">
-                            <Search
-                                size={18}
-                                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                            />
+                    <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2 sm:gap-3">
+                        <div className="relative min-w-[140px] flex-1 sm:max-w-xs">
+                            <Search size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                             <input
                                 type="search"
                                 value={search}
-                                onChange={(event) => {
-                                    setSearch(event.target.value);
-                                    setCurrentPage(1);
-                                }}
-                                placeholder="Search..."
+                                onChange={(event) => { setSearch(event.target.value); setCurrentPage(1); }}
+                                placeholder="Search patient, practitioner..."
                                 aria-label="Search appointments"
-                                className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-2 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#82A995] focus:ring-2 focus:ring-[#DDF3E7] sm:h-11 sm:pl-10 sm:pr-4"
+                                className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#82A995] focus:ring-2 focus:ring-[#DDF3E7] sm:h-11 sm:pl-10"
                             />
                         </div>
 
-                        {/* Status filter */}
-                        <div className="relative w-[105px] shrink-0 sm:w-36">
-                            <select
-                                value={statusFilter}
-                                onChange={(event) => {
-                                    setStatusFilter(event.target.value);
-                                    setCurrentPage(1);
-                                }}
-                                aria-label="Filter appointments by status"
-                                className="h-10 w-full appearance-none rounded-xl border border-slate-200 bg-white py-2 pl-2 pr-7 text-xs text-slate-600 outline-none focus:border-[#82A995] sm:h-11 sm:pl-3 sm:pr-9 sm:text-sm"
-                            >
+                        <div className="relative w-[112px] shrink-0 sm:w-36">
+                            <select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setCurrentPage(1); }} aria-label="Filter appointments by status" className="h-10 w-full appearance-none rounded-xl border border-slate-200 bg-white py-2 pl-2 pr-7 text-xs text-slate-600 outline-none focus:border-[#82A995] sm:h-11 sm:pl-3 sm:pr-9 sm:text-sm">
                                 <option>All statuses</option>
-                                {statuses.map((status) => (
-                                    <option key={status}>{status}</option>
-                                ))}
+                                {statuses.map((status) => <option key={status}>{status}</option>)}
                             </select>
-                            <ChevronDown
-                                size={15}
-                                className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 sm:right-3"
-                            />
+                            <ChevronDown size={15} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 sm:right-3" />
                         </div>
 
-                        {/* Branch filter */}
                         <div className="relative hidden w-36 shrink-0 sm:block">
-                            <select
-                                value={branchFilter}
-                                onChange={(event) => {
-                                    setBranchFilter(event.target.value);
-                                    setCurrentPage(1);
-                                }}
-                                aria-label="Filter appointments by branch"
-                                className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white py-2 pl-3 pr-9 text-sm text-slate-600 outline-none focus:border-[#82A995]"
-                            >
+                            <select value={branchFilter} onChange={(event) => { setBranchFilter(event.target.value); setCurrentPage(1); }} aria-label="Filter appointments by branch" className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white py-2 pl-3 pr-9 text-sm text-slate-600 outline-none focus:border-[#82A995]">
                                 <option>All branches</option>
-                                {branches.map((branch) => (
-                                    <option key={branch}>{branch}</option>
-                                ))}
+                                {branches.map((branch) => <option key={branch}>{branch}</option>)}
                             </select>
-                            <ChevronDown
-                                size={15}
-                                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
-                            />
+                            <ChevronDown size={15} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
                         </div>
 
-                        {/* Add appointment */}
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setActionMessage("");
-                                setIsCreateModalOpen(true);
-                            }}
-                            aria-label="Add appointment"
-                            title="Add appointment"
-                            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#176B55] text-white transition hover:bg-[#173F35] focus:outline-none focus:ring-2 focus:ring-[#DDF3E7] sm:h-11 sm:w-11"
-                        >
+                        <div className="flex h-10 shrink-0 items-center rounded-xl border border-slate-200 bg-slate-50 p-1 sm:h-11">
+                            <button type="button" onClick={() => setViewMode("table")} aria-pressed={viewMode === "table"} className={`inline-flex h-full items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition sm:px-3 sm:text-sm ${viewMode === "table" ? "bg-white text-[#176B55] shadow-sm" : "text-slate-500 hover:text-[#176B55]"}`}>
+                                <ClipboardList size={16} /> <span>Table</span>
+                            </button>
+                            <button type="button" onClick={() => setViewMode("calendar")} aria-pressed={viewMode === "calendar"} className={`inline-flex h-full items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition sm:px-3 sm:text-sm ${viewMode === "calendar" ? "bg-[#DDF3E7] text-[#176B55] shadow-sm" : "text-slate-500 hover:text-[#176B55]"}`}>
+                                <Calendar size={16} /> <span>Calendar</span>
+                            </button>
+                        </div>
+
+                        <button type="button" onClick={() => { setActionMessage(""); setIsCreateModalOpen(true); }} aria-label="Add appointment" title="Add appointment" className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#176B55] text-white transition hover:bg-[#173F35] focus:outline-none focus:ring-2 focus:ring-[#DDF3E7] sm:h-11 sm:w-11">
                             <Plus size={19} />
                         </button>
                     </div>
                 </div>
 
-                {/* Responsive table */}
-                <div className="overflow-x-auto">
-                    <table className="w-full min-w-[900px] text-left">
-                        <thead>
-                            <tr className="border-y border-slate-100 bg-slate-50/80">
-                                {[
-                                    "Patient",
-                                    "Date & time",
-                                    "Service",
-                                    "Practitioner",
-                                    "Branch",
-                                    "Status",
-                                    "Action",
-                                ].map((heading) => (
-                                    <th
-                                        key={heading}
-                                        className="whitespace-nowrap px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500"
-                                    >
-                                        {heading}
-                                    </th>
-                                ))}
-                            </tr>
-                        </thead>
-
-                        <tbody className="divide-y divide-slate-100">
-                            {paginatedBookings.map((booking) => (
-                                <tr
-                                    key={booking.id}
-                                    onClick={() => {
-                                        setSelectedBooking(booking);
-                                        setActionMessage("");
-                                    }}
-                                    className="cursor-pointer transition hover:bg-[#F7F9F6]/80"
-                                >
-                                    <td className="px-5 py-4">
-                                        <p className="whitespace-nowrap text-sm font-semibold text-[#173F35]">
-                                            {booking.patient}
-                                        </p>
-                                        <p className="mt-1 text-xs text-slate-400">
-                                            {booking.id}
-                                        </p>
-                                    </td>
-
-                                    <td className="whitespace-nowrap px-5 py-4">
-                                        <p className="text-sm font-medium text-slate-700">
-                                            {formatDate(booking.date)}
-                                        </p>
-                                        <p className="mt-1 text-xs text-slate-500">
-                                            {formatTime(booking.time, currentDate)}
-                                        </p>
-                                    </td>
-
-                                    <td className="px-5 py-4 text-sm text-slate-600">
-                                        {booking.service}
-                                    </td>
-
-                                    <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-600">
-                                        {booking.doctor}
-                                    </td>
-
-                                    <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-600">
-                                        {booking.branch}
-                                    </td>
-
-                                    <td className="px-5 py-4">
-                                        <StatusBadge status={booking.status} />
-                                    </td>
-
-                                    <td className="px-5 py-4">
-                                        <button
-                                            type="button"
-                                            onClick={(event) => {
-                                                event.stopPropagation();
-                                                setSelectedBooking(booking);
-                                                setActionMessage("");
-                                            }}
-                                            aria-label={`View ${booking.patient}'s booking`}
-                                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-[#176B55] transition hover:border-[#82A995] hover:bg-[#DDF3E7]/40"
-                                        >
-                                            <Eye size={14} />
-                                            Details
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-
-                            {filteredBookings.length === 0 && (
-                                <tr>
-                                    <td colSpan={7} className="px-5 py-16 text-center">
-                                        <Search
-                                            size={28}
-                                            className="mx-auto text-slate-300"
-                                        />
-                                        <p className="mt-3 font-semibold text-[#173F35]">
-                                            No bookings found
-                                        </p>
-                                        <p className="mt-1 text-sm text-slate-500">
-                                            Try changing your search or filters.
-                                        </p>
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                    {/* Pagination */}
-                    <div className="flex flex-col gap-4 border-t border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-                        {/* Results information */}
-                        <div className="flex items-center gap-4">
-                            <p className="text-sm text-slate-500">
-                                Showing{" "}
-                                <span className="font-semibold text-[#173F35]">
-                                    {startItem}
-                                </span>
-                                –
-                                <span className="font-semibold text-[#173F35]">
-                                    {endItem}
-                                </span>{" "}
-                                of{" "}
-                                <span className="font-semibold text-[#173F35]">
-                                    {totalBookings}
-                                </span>
-                            </p>
-
-                            {/* Page size */}
-                            <div className="hidden items-center gap-2 sm:flex">
-                                <span className="text-xs text-slate-500">Rows</span>
-
-                                <select
-                                    value={pageSize}
-                                    onChange={(event) => {
-                                        setPageSize(Number(event.target.value));
-                                        setCurrentPage(1);
-                                    }}
-                                    className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-600 outline-none focus:border-[#82A995]"
-                                >
-                                    <option value={10}>10</option>
-                                    <option value={25}>25</option>
-                                    <option value={50}>50</option>
-                                </select>
-                            </div>
+                {viewMode === "table" ? (
+                    <>
+                        <div className="overflow-x-auto">
+                            <table className="w-full min-w-[900px] text-left">
+                                <thead><tr className="border-y border-slate-100 bg-slate-50/80">
+                                    {["Patient", "Date & time", "Service", "Practitioner", "Branch", "Status", "Action"].map((heading) => <th key={heading} className="whitespace-nowrap px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{heading}</th>)}
+                                </tr></thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {paginatedBookings.map((booking) => (
+                                        <tr key={booking.id} onClick={() => { setSelectedBooking(booking); setActionMessage(""); }} className="cursor-pointer transition hover:bg-[#F7F9F6]/80">
+                                            <td className="px-5 py-4"><p className="whitespace-nowrap text-sm font-semibold text-[#173F35]">{booking.patient}</p><p className="mt-1 text-xs text-slate-400">{booking.id}</p></td>
+                                            <td className="whitespace-nowrap px-5 py-4"><p className="text-sm font-medium text-slate-700">{formatDate(booking.date)}</p><p className="mt-1 text-xs text-slate-500">{formatTime(booking.time, currentDate)}</p></td>
+                                            <td className="px-5 py-4 text-sm text-slate-600">{booking.service}</td>
+                                            <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-600">{booking.doctor}</td>
+                                            <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-600">{booking.branch}</td>
+                                            <td className="px-5 py-4"><StatusBadge status={booking.status} /></td>
+                                            <td className="px-5 py-4"><button type="button" onClick={(event) => { event.stopPropagation(); setSelectedBooking(booking); setActionMessage(""); }} aria-label={`View ${booking.patient}'s booking`} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-[#176B55] transition hover:border-[#82A995] hover:bg-[#DDF3E7]/40"><Eye size={14} /> Details</button></td>
+                                        </tr>
+                                    ))}
+                                    {filteredBookings.length === 0 && <tr><td colSpan={7} className="px-5 py-16 text-center"><Search size={28} className="mx-auto text-slate-300" /><p className="mt-3 font-semibold text-[#173F35]">No bookings found</p><p className="mt-1 text-sm text-slate-500">Try changing your search or filters.</p></td></tr>}
+                                </tbody>
+                            </table>
                         </div>
 
-                        {/* Pagination controls */}
-                        <div className="flex items-center justify-between gap-2 sm:justify-end">
-                            <button
-                                type="button"
-                                disabled={currentPage === 1}
-                                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-                                className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                            >
-                                Previous
-                            </button>
-
-                            <div className="flex items-center gap-1">
-                                {getPaginationPages(currentPage, totalPages).map((page, index) => {
-                                    if (page === "...") {
-                                        return (
-                                            <span
-                                                key={`ellipsis-${index}`}
-                                                className="flex h-9 w-9 items-center justify-center text-sm text-slate-400"
-                                            >
-                                                ...
-                                            </span>
-                                        );
-                                    }
-
-                                    return (
-                                        <button
-                                            key={page}
-                                            type="button"
-                                            onClick={() => setCurrentPage(page)}
-                                            className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-sm font-semibold transition ${currentPage === page
-                                                ? "bg-[#176B55] text-white"
-                                                : "text-slate-600 hover:bg-[#DDF3E7] hover:text-[#176B55]"
-                                                }`}
-                                        >
-                                            {page}
-                                        </button>
-                                    );
-                                })}
+                        <div className="flex flex-col gap-4 border-t border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="flex items-center gap-4"><p className="text-sm text-slate-500">Showing <span className="font-semibold text-[#173F35]">{startItem}</span>–<span className="font-semibold text-[#173F35]">{endItem}</span> of <span className="font-semibold text-[#173F35]">{totalBookings}</span></p>
+                                <div className="hidden items-center gap-2 sm:flex"><span className="text-xs text-slate-500">Rows</span><select value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setCurrentPage(1); }} className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-600 outline-none focus:border-[#82A995]"><option value={10}>10</option><option value={25}>25</option><option value={50}>50</option></select></div>
                             </div>
-
-                            <button
-                                type="button"
-                                disabled={currentPage === totalPages}
-                                onClick={() =>
-                                    setCurrentPage((page) => Math.min(totalPages, page + 1))
-                                }
-                                className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                            >
-                                Next
-                            </button>
+                            <div className="flex items-center justify-between gap-2 sm:justify-end"><button type="button" disabled={currentPage === 1} onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">Previous</button>
+                                <div className="flex items-center gap-1">{getPaginationPages(currentPage, totalPages).map((page, index) => page === "..." ? <span key={`ellipsis-${index}`} className="flex h-9 w-9 items-center justify-center text-sm text-slate-400">...</span> : <button key={page} type="button" onClick={() => setCurrentPage(page)} className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-sm font-semibold transition ${currentPage === page ? "bg-[#176B55] text-white" : "text-slate-600 hover:bg-[#DDF3E7] hover:text-[#176B55]"}`}>{page}</button>)}</div>
+                                <button type="button" disabled={currentPage === totalPages} onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">Next</button>
+                            </div>
                         </div>
+                    </>
+                ) : (
+                    <div className="p-3 sm:p-5">
+                        <div className="flex flex-wrap items-center justify-between gap-3 pb-4">
+                            <div className="flex items-center gap-2">
+                                <button type="button" onClick={() => setCalendarWeekOffset(0)} className="h-9 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">Today</button>
+                                <div className="flex items-center overflow-hidden rounded-lg border border-slate-200"><button type="button" aria-label="Previous week" onClick={() => setCalendarWeekOffset((offset) => offset - 1)} className="flex h-9 w-9 items-center justify-center text-slate-600 hover:bg-slate-50"><ChevronLeft size={17} /></button><button type="button" aria-label="Next week" onClick={() => setCalendarWeekOffset((offset) => offset + 1)} className="flex h-9 w-9 items-center justify-center border-l border-slate-200 text-slate-600 hover:bg-slate-50"><ChevronRight size={17} /></button></div>
+                                <h3 className="ml-1 text-sm font-bold text-[#173F35] sm:ml-2 sm:text-base">{formatWeekRange(weekStart, weekEnd)}</h3>
+                            </div>
+                            <p className="text-xs text-slate-500">Select an appointment to view details</p>
+                        </div>
+
+                        <div className="overflow-x-auto rounded-xl border border-slate-200">
+                            <div className="min-w-[900px]">
+                                <div className="grid grid-cols-[64px_repeat(7,minmax(0,1fr))] border-b border-slate-200 bg-slate-50/70">
+                                    <div className="border-r border-slate-200 p-2" />
+                                    {weekDays.map((day) => {
+                                        const isToday = currentDate && toDateKey(day) === toDateKey(currentDate);
+                                        return <div key={toDateKey(day)} className={`border-r border-slate-200 px-1 py-3 text-center last:border-r-0 ${isToday ? "bg-[#DDF3E7]/70" : ""}`}><p className={`text-xs font-semibold ${isToday ? "text-[#176B55]" : "text-slate-500"}`}>{day.toLocaleDateString("en-PH", { weekday: "short" })}</p><p className={`mt-1 text-sm font-bold ${isToday ? "text-[#176B55]" : "text-[#173F35]"}`}>{day.getDate()}</p></div>;
+                                    })}
+                                </div>
+                                <div className="grid grid-cols-[64px_repeat(7,minmax(0,1fr))]">
+                                    <div className="border-r border-slate-200 bg-white">{calendarHours.map((hour) => <div key={hour} className="h-16 border-b border-slate-100 px-1 pt-1.5 text-right text-[10px] text-slate-400 sm:px-2 sm:text-xs">{formatHour(hour)}</div>)}</div>
+                                    {weekDays.map((day) => {
+                                        const dayKey = toDateKey(day);
+                                        const dayBookings = filteredBookings.filter((booking) => booking.date === dayKey);
+                                        const isToday = currentDate && dayKey === toDateKey(currentDate);
+                                        return <div key={dayKey} className={`relative border-r border-slate-200 last:border-r-0 ${isToday ? "bg-[#F7F9F6]/70" : "bg-white"}`}>
+                                            {calendarHours.map((hour) => <div key={hour} className="h-16 border-b border-slate-100" />)}
+                                            {dayBookings.map((booking) => {
+                                                const start = getBookingMinutes(booking);
+                                                if (start < 8 * 60 || start >= 19 * 60) return null;
+                                                const statusColor = booking.status === "Confirmed" ? "border-l-emerald-500 bg-emerald-50 text-emerald-950" : booking.status === "Pending" ? "border-l-amber-500 bg-amber-50 text-amber-950" : booking.status === "Declined" ? "border-l-rose-500 bg-rose-50 text-rose-950" : "border-l-slate-400 bg-slate-100 text-slate-800";
+                                                return <button key={booking.id} type="button" onClick={() => { setSelectedBooking(booking); setActionMessage(""); }} style={getCalendarBookingStyle(booking)} title={`${booking.patient} · ${booking.service} · ${booking.doctor} · ${booking.status}`} className={`absolute left-1 right-1 z-10 overflow-hidden rounded-md border-l-[3px] px-1.5 py-1 text-left shadow-sm transition hover:z-20 hover:brightness-[0.98] focus:outline-none focus:ring-2 focus:ring-[#82A995] sm:left-1.5 sm:right-1.5 sm:px-2 ${statusColor}`}>
+                                                    <p className="truncate text-[10px] font-bold leading-4 sm:text-xs">{booking.patient}</p>
+                                                    <p className="truncate text-[9px] leading-3 opacity-80 sm:text-[10px]">{booking.service}</p>
+                                                    <p className="truncate text-[9px] leading-3 opacity-80 sm:text-[10px]">{booking.time} · {booking.doctor}</p>
+                                                    <span className="mt-1 inline-block max-w-full truncate rounded bg-white/70 px-1 py-0.5 text-[9px] font-semibold sm:text-[10px]">{booking.status}</span>
+                                                </button>;
+                                            })}
+                                        </div>;
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-slate-500">
+                            {[{ label: "Confirmed", color: "bg-emerald-500" }, { label: "Pending", color: "bg-amber-500" }, { label: "Declined", color: "bg-rose-500" }, { label: "Completed", color: "bg-slate-400" }].map((item) => <span key={item.label} className="inline-flex items-center gap-1.5"><span className={`h-2 w-2 rounded-full ${item.color}`} />{item.label}</span>)}
+                        </div>
+                        {filteredBookings.length === 0 && <p className="py-8 text-center text-sm text-slate-500">No bookings match your current filters.</p>}
                     </div>
-                </div>
+                )}
             </section>
 
             {/* Create booking modal */}
