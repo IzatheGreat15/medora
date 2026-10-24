@@ -221,7 +221,7 @@ export default function ServicesPage() {
     return (
         <div className="mx-auto max-w-7xl space-y-6">
             {/* Summary cards */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-4 grid-cols-2 xl:grid-cols-3">
                 <SummaryCard
                     title="Total services"
                     value={services.length.toString()}

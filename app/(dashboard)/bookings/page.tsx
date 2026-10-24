@@ -141,7 +141,7 @@ function formatDate(date: string) {
     });
 }
 
-function formatTime(time: string, currentDate: Date|null) {
+function formatTime(time: string, currentDate: Date | null) {
     if (currentDate === null) {
         return;
     }
@@ -396,34 +396,46 @@ export default function BookingsPage() {
 
             {/* Table */}
             <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/[0.02]">
-                {/* Search and filters */}
-                <div className="flex flex-col gap-3 border-b border-slate-100 p-4 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="relative w-full lg:max-w-sm">
-                        <Search
-                            size={18}
-                            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                        />
-                        <input
-                            type="search"
-                            value={search}
-                            onChange={(event) => {
-                                setSearch(event.target.value);
-                                setCurrentPage(1);
-                            }}
-                            placeholder="Search patient, doctor, service..."
-                            className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#82A995] focus:ring-2 focus:ring-[#DDF3E7]"
-                        />
-                    </div>
+                {/* Search, filters, results count, and Add button */}
+                <div className="flex items-center justify-between gap-2 border-b border-slate-100 p-3 sm:gap-3 sm:p-4">
+                    {/* Results count — hidden on very small screens */}
+                    <p className="hidden shrink-0 text-sm text-slate-500 md:block">
+                        <span className="font-semibold text-[#173F35]">
+                            {filteredBookings.length}
+                        </span>{" "}
+                        found
+                    </p>
 
-                    <div className="flex flex-wrap gap-2">
-                        <div className="relative min-w-36 flex-1 sm:flex-none">
+                    <div className="flex min-w-0 flex-1 items-center justify-end gap-2 sm:gap-4">
+                        {/* Search */}
+                        <div className="relative min-w-0 flex-1 sm:max-w-xs">
+                            <Search
+                                size={18}
+                                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                            />
+                            <input
+                                type="search"
+                                value={search}
+                                onChange={(event) => {
+                                    setSearch(event.target.value);
+                                    setCurrentPage(1);
+                                }}
+                                placeholder="Search..."
+                                aria-label="Search appointments"
+                                className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-2 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#82A995] focus:ring-2 focus:ring-[#DDF3E7] sm:h-11 sm:pl-10 sm:pr-4"
+                            />
+                        </div>
+
+                        {/* Status filter */}
+                        <div className="relative w-[105px] shrink-0 sm:w-36">
                             <select
                                 value={statusFilter}
                                 onChange={(event) => {
                                     setStatusFilter(event.target.value);
                                     setCurrentPage(1);
                                 }}
-                                className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white py-2 pl-3 pr-9 text-sm text-slate-600 outline-none focus:border-[#82A995]"
+                                aria-label="Filter appointments by status"
+                                className="h-10 w-full appearance-none rounded-xl border border-slate-200 bg-white py-2 pl-2 pr-7 text-xs text-slate-600 outline-none focus:border-[#82A995] sm:h-11 sm:pl-3 sm:pr-9 sm:text-sm"
                             >
                                 <option>All statuses</option>
                                 {statuses.map((status) => (
@@ -432,17 +444,19 @@ export default function BookingsPage() {
                             </select>
                             <ChevronDown
                                 size={15}
-                                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+                                className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 sm:right-3"
                             />
                         </div>
 
-                        <div className="relative min-w-36 flex-1 sm:flex-none">
+                        {/* Branch filter */}
+                        <div className="relative hidden w-36 shrink-0 sm:block">
                             <select
                                 value={branchFilter}
                                 onChange={(event) => {
                                     setBranchFilter(event.target.value);
                                     setCurrentPage(1);
                                 }}
+                                aria-label="Filter appointments by branch"
                                 className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white py-2 pl-3 pr-9 text-sm text-slate-600 outline-none focus:border-[#82A995]"
                             >
                                 <option>All branches</option>
@@ -455,27 +469,21 @@ export default function BookingsPage() {
                                 className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
                             />
                         </div>
-                    </div>
-                </div>
 
-                {/* Results count */}
-                <div className="flex items-center justify-between px-4 py-3">
-                    <p className="text-sm text-slate-500">
-                        <span className="font-semibold text-[#173F35]">
-                            {filteredBookings.length}
-                        </span>{" "}
-                        appointments found
-                    </p>
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setActionMessage("");
-                            setIsCreateModalOpen(true);
-                        }}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#176B55] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#173F35]"
-                    >
-                        <Plus size={17} />
-                    </button>
+                        {/* Add appointment */}
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setActionMessage("");
+                                setIsCreateModalOpen(true);
+                            }}
+                            aria-label="Add appointment"
+                            title="Add appointment"
+                            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#176B55] text-white transition hover:bg-[#173F35] focus:outline-none focus:ring-2 focus:ring-[#DDF3E7] sm:h-11 sm:w-11"
+                        >
+                            <Plus size={19} />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Responsive table */}

@@ -178,7 +178,7 @@ export default function BranchesPage() {
                 </div>
             )}
 
-            <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <section className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                 {[
                     {
                         label: "Total branches",
@@ -215,26 +215,39 @@ export default function BranchesPage() {
             </section>
 
             <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/[0.02]">
-                <div className="flex flex-col gap-3 border-b border-slate-100 p-4 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="relative w-full lg:max-w-sm">
+                <div className="flex items-center justify-between gap-2 border-b border-slate-100 p-3 sm:gap-3 sm:p-4">
+                    {/* Branch count — hidden on very small screens */}
+                    <p className="hidden shrink-0 text-sm text-slate-500 md:block">
+                        <span className="font-semibold text-[#173F35]">
+                            {filteredBranches.length}
+                        </span>{" "}
+                        found
+                    </p>
+
+                    <div className="flex gap-4">
+                        {/* Search */}
+                    <div className="relative min-w-0">
                         <Search
                             size={18}
-                            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                         />
                         <input
                             type="search"
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
-                            placeholder="Search branches..."
-                            className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#82A995] focus:ring-2 focus:ring-[#DDF3E7]"
+                            placeholder="Search..."
+                            aria-label="Search branches"
+                            className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-2 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#82A995] focus:ring-2 focus:ring-[#DDF3E7] sm:h-11 sm:pl-10 sm:pr-4"
                         />
                     </div>
 
-                    <div className="relative w-full sm:w-44">
+                    {/* Status filter */}
+                    <div className="relative w-[120px] shrink-0 sm:w-44">
                         <select
                             value={statusFilter}
                             onChange={(event) => setStatusFilter(event.target.value)}
-                            className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white py-2 pl-3 pr-9 text-sm text-slate-600 outline-none focus:border-[#82A995]"
+                            aria-label="Filter branches by status"
+                            className="h-10 w-full appearance-none rounded-xl border border-slate-200 bg-white py-2 pl-2 pr-7 text-xs text-slate-600 outline-none focus:border-[#82A995] sm:h-11 sm:pl-3 sm:pr-9 sm:text-sm"
                         >
                             <option>All statuses</option>
                             <option>Active</option>
@@ -242,28 +255,24 @@ export default function BranchesPage() {
                         </select>
                         <ChevronDown
                             size={15}
-                            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+                            className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 sm:right-3"
                         />
                     </div>
-                </div>
 
-                <div className="flex items-center justify-between px-4 py-3">
-                    <p className="text-sm text-slate-500">
-                        <span className="font-semibold text-[#173F35]">
-                            {filteredBranches.length}
-                        </span>{" "}
-                        branches found
-                    </p>
+                    {/* Add branch */}
                     <button
                         type="button"
                         onClick={() => {
                             setActionMessage("");
                             setIsCreateModalOpen(true);
                         }}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#176B55] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#173F35]"
+                        aria-label="Add branch"
+                        title="Add branch"
+                        className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#176B55] text-white transition hover:bg-[#173F35] focus:outline-none focus:ring-2 focus:ring-[#DDF3E7] sm:h-11 sm:w-11"
                     >
-                        <Plus size={17} />
+                        <Plus size={19} />
                     </button>
+                    </div>
                 </div>
 
                 <div className="overflow-x-auto">

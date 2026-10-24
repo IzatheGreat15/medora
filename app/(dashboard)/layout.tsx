@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Suspense, useState } from "react";
@@ -22,29 +23,42 @@ export default function DashboardLayout({
       <div className="flex min-h-screen">
         {/* Desktop sidebar */}
         <div className="sticky top-0 hidden h-screen shrink-0 lg:block">
-  <Suspense
-    fallback={<div className="h-screen w-64 bg-[#173F35]" />}
-  >
-    <DashboardSidebar
-      collapsed={collapsed}
-      onToggle={() => setCollapsed((value) => !value)}
-    />
-  </Suspense>
-</div>
+          <Suspense
+            fallback={<div className="h-screen w-64 bg-[#173F35]" />}
+          >
+            <DashboardSidebar
+              collapsed={collapsed}
+              onToggle={() => setCollapsed((value) => !value)}
+            />
+          </Suspense>
+        </div>
 
-        {/* Mobile sidebar */}
+        {/* Mobile sidebar overlay */}
         {mobileMenuOpen && (
-          <div className="absolute inset-y-0 left-0">
-  <Suspense
-    fallback={<div className="h-screen w-64 bg-[#173F35]" />}
-  >
-    <DashboardSidebar
-      collapsed={false}
-      onToggle={closeMobileMenu}
-      onNavigate={closeMobileMenu}
-    />
-  </Suspense>
-</div>
+          <div className="fixed inset-0 z-50 lg:hidden">
+            {/* Backdrop */}
+            <button
+              type="button"
+              aria-label="Close navigation menu"
+              onClick={closeMobileMenu}
+              className="absolute inset-0 h-full w-full bg-black/40"
+            />
+
+            {/* Sidebar panel */}
+            <div className="absolute inset-y-0 left-0 z-10 h-full shadow-2xl">
+              <Suspense
+                fallback={
+                  <div className="h-screen w-64 bg-[#173F35]" />
+                }
+              >
+                <DashboardSidebar
+                  collapsed={false}
+                  onToggle={closeMobileMenu}
+                  onNavigate={closeMobileMenu}
+                />
+              </Suspense>
+            </div>
+          </div>
         )}
 
         {/* Main workspace */}
