@@ -2,10 +2,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import type { FormEvent, ReactNode } from "react";
+import CalendarView, { type CalendarLegendItem } from "@/components/calendar/Calendar";
+import type { CalendarEvent } from "@/lib/calendar/types";
 import {
     Search,
     CalendarDays,
-    Calendar,
+    Calendar as CalendarIcon,
     ChevronLeft,
     ChevronRight,
     Clock3,
@@ -24,6 +27,30 @@ import {
     StickyNote,
 } from "lucide-react";
 import { getCurrentDate } from "@/lib/date";
+
+
+const appointmentStatusLegend: CalendarLegendItem[] = [
+    {
+        status: "pending",
+        label: "Pending",
+        className: "border-l-amber-500 bg-amber-50 text-amber-800",
+    },
+    {
+        status: "confirmed",
+        label: "Confirmed",
+        className: "border-l-[#176B55] bg-[#DDF3E7] text-[#173F35]",
+    },
+    {
+        status: "rejected",
+        label: "Declined",
+        className: "border-l-rose-500 bg-rose-50 text-rose-800",
+    },
+    {
+        status: "completed",
+        label: "Completed",
+        className: "border-l-sky-500 bg-sky-50 text-sky-800",
+    },
+];
 
 type BookingStatus = "Pending" | "Confirmed" | "Declined" | "Completed";
 
@@ -150,7 +177,7 @@ function formatTime(time: string, currentDate: Date | null) {
     }
 
     const [hours, minutes] = time.split(":").map(Number);
-    const date = currentDate;
+    const date = new Date(currentDate);
     date.setHours(hours, minutes, 0, 0);
 
     return date.toLocaleTimeString("en-PH", {
@@ -192,6 +219,7 @@ export default function BookingsPage() {
     const [actionMessage, setActionMessage] = useState("");
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [currentDate, setCurrentDate] = useState<Date | null>(null);
+    const [selectedDate, setSelectedDate] = useState("");
     const [newBooking, setNewBooking] = useState({
         patient: "",
         email: "",
@@ -240,6 +268,43 @@ export default function BookingsPage() {
         });
     }, [bookings, search, statusFilter, branchFilter]);
 
+    const filteredEvents = useMemo<CalendarEvent[]>(() => {
+        const statusMap = {
+            Pending: "pending",
+            Confirmed: "confirmed",
+            Declined: "rejected",
+            Completed: "completed",
+        } as const;
+
+        return filteredBookings.map((booking) => {
+            const start = new Date(`${booking.date}T${booking.time}:00`);
+            const end = new Date(start.getTime() + booking.duration * 60_000);
+            const toLocalDateTime = (date: Date) =>
+                `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}T${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}:00`;
+
+            return {
+                id: booking.id,
+                title: booking.patient,
+                startAt: toLocalDateTime(start),
+                endAt: toLocalDateTime(end),
+                type: "appointment",
+                status: statusMap[booking.status],
+                description: `${booking.service} · ${booking.branch}`,
+                personName: booking.doctor,
+                serviceName: booking.service,
+                branchId: booking.branch,
+            };
+        });
+    }, [filteredBookings]);
+
+    function handleEventClick(event: CalendarEvent) {
+        const booking = bookings.find((item) => item.id === event.id);
+        if (booking) {
+            setSelectedBooking(booking);
+            setActionMessage("");
+        }
+    }
+
     const totalBookings = filteredBookings.length;
     const totalPages = Math.max(1, Math.ceil(totalBookings / pageSize));
 
@@ -251,7 +316,11 @@ export default function BookingsPage() {
     }, [filteredBookings, currentPage, pageSize]);
 
     useEffect(() => {
-        setCurrentDate(getCurrentDate());
+        const today = getCurrentDate();
+        setCurrentDate(today);
+        setSelectedDate(
+            `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`,
+        );
     }, []);
 
     const startItem =
@@ -263,7 +332,7 @@ export default function BookingsPage() {
         if (currentDate === null) {
             return [];
         }
-        const base = currentDate;
+        const base = new Date(currentDate);
         base.setHours(12, 0, 0, 0);
         const day = base.getDay();
         base.setDate(base.getDate() - ((day + 6) % 7) + calendarWeekOffset * 7);
@@ -335,7 +404,7 @@ export default function BookingsPage() {
         );
     }
 
-    function handleCreateBooking(event: React.FormEvent<HTMLFormElement>) {
+    function handleCreateBooking(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
 
         const booking: Booking = {
@@ -494,7 +563,7 @@ export default function BookingsPage() {
                                 <ClipboardList size={16} /> <span>Table</span>
                             </button>
                             <button type="button" onClick={() => setViewMode("calendar")} aria-pressed={viewMode === "calendar"} className={`inline-flex h-full items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition sm:px-3 sm:text-sm ${viewMode === "calendar" ? "bg-[#DDF3E7] text-[#176B55] shadow-sm" : "text-slate-500 hover:text-[#176B55]"}`}>
-                                <Calendar size={16} /> <span>Calendar</span>
+                                <CalendarIcon size={16} /> <span>Calendar</span>
                             </button>
                         </div>
 
@@ -539,54 +608,17 @@ export default function BookingsPage() {
                         </div>
                     </>
                 ) : (
-                    <div className="p-3 sm:p-5">
-                        <div className="flex flex-wrap items-center justify-between gap-3 pb-4">
-                            <div className="flex items-center gap-2">
-                                <button type="button" onClick={() => setCalendarWeekOffset(0)} className="h-9 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">Today</button>
-                                <div className="flex items-center overflow-hidden rounded-lg border border-slate-200"><button type="button" aria-label="Previous week" onClick={() => setCalendarWeekOffset((offset) => offset - 1)} className="flex h-9 w-9 items-center justify-center text-slate-600 hover:bg-slate-50"><ChevronLeft size={17} /></button><button type="button" aria-label="Next week" onClick={() => setCalendarWeekOffset((offset) => offset + 1)} className="flex h-9 w-9 items-center justify-center border-l border-slate-200 text-slate-600 hover:bg-slate-50"><ChevronRight size={17} /></button></div>
-                                <h3 className="ml-1 text-sm font-bold text-[#173F35] sm:ml-2 sm:text-base">{formatWeekRange(weekStart, weekEnd)}</h3>
-                            </div>
-                            <p className="text-xs text-slate-500">Select an appointment to view details</p>
-                        </div>
-
-                        <div className="overflow-x-auto rounded-xl border border-slate-200">
-                            <div className="min-w-[900px]">
-                                <div className="grid grid-cols-[64px_repeat(7,minmax(0,1fr))] border-b border-slate-200 bg-slate-50/70">
-                                    <div className="border-r border-slate-200 p-2" />
-                                    {weekDays.map((day) => {
-                                        const isToday = currentDate && toDateKey(day) === toDateKey(currentDate);
-                                        return <div key={toDateKey(day)} className={`border-r border-slate-200 px-1 py-3 text-center last:border-r-0 ${isToday ? "bg-[#DDF3E7]/70" : ""}`}><p className={`text-xs font-semibold ${isToday ? "text-[#176B55]" : "text-slate-500"}`}>{day.toLocaleDateString("en-PH", { weekday: "short" })}</p><p className={`mt-1 text-sm font-bold ${isToday ? "text-[#176B55]" : "text-[#173F35]"}`}>{day.getDate()}</p></div>;
-                                    })}
-                                </div>
-                                <div className="grid grid-cols-[64px_repeat(7,minmax(0,1fr))]">
-                                    <div className="border-r border-slate-200 bg-white">{calendarHours.map((hour) => <div key={hour} className="h-16 border-b border-slate-100 px-1 pt-1.5 text-right text-[10px] text-slate-400 sm:px-2 sm:text-xs">{formatHour(hour)}</div>)}</div>
-                                    {weekDays.map((day) => {
-                                        const dayKey = toDateKey(day);
-                                        const dayBookings = filteredBookings.filter((booking) => booking.date === dayKey);
-                                        const isToday = currentDate && dayKey === toDateKey(currentDate);
-                                        return <div key={dayKey} className={`relative border-r border-slate-200 last:border-r-0 ${isToday ? "bg-[#F7F9F6]/70" : "bg-white"}`}>
-                                            {calendarHours.map((hour) => <div key={hour} className="h-16 border-b border-slate-100" />)}
-                                            {dayBookings.map((booking) => {
-                                                const start = getBookingMinutes(booking);
-                                                if (start < 8 * 60 || start >= 19 * 60) return null;
-                                                const statusColor = booking.status === "Confirmed" ? "border-l-emerald-500 bg-emerald-50 text-emerald-950" : booking.status === "Pending" ? "border-l-amber-500 bg-amber-50 text-amber-950" : booking.status === "Declined" ? "border-l-rose-500 bg-rose-50 text-rose-950" : "border-l-slate-400 bg-slate-100 text-slate-800";
-                                                return <button key={booking.id} type="button" onClick={() => { setSelectedBooking(booking); setActionMessage(""); }} style={getCalendarBookingStyle(booking)} title={`${booking.patient} · ${booking.service} · ${booking.doctor} · ${booking.status}`} className={`absolute left-1 right-1 z-10 overflow-hidden rounded-md border-l-[3px] px-1.5 py-1 text-left shadow-sm transition hover:z-20 hover:brightness-[0.98] focus:outline-none focus:ring-2 focus:ring-[#82A995] sm:left-1.5 sm:right-1.5 sm:px-2 ${statusColor}`}>
-                                                    <p className="truncate text-[10px] font-bold leading-4 sm:text-xs">{booking.patient}</p>
-                                                    <p className="truncate text-[9px] leading-3 opacity-80 sm:text-[10px]">{booking.service}</p>
-                                                    <p className="truncate text-[9px] leading-3 opacity-80 sm:text-[10px]">{booking.time} · {booking.doctor}</p>
-                                                    <span className="mt-1 inline-block max-w-full truncate rounded bg-white/70 px-1 py-0.5 text-[9px] font-semibold sm:text-[10px]">{booking.status}</span>
-                                                </button>;
-                                            })}
-                                        </div>;
-                                    })}
-                                </div>
-                            </div>
-                        </div>
-                        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-slate-500">
-                            {[{ label: "Confirmed", color: "bg-emerald-500" }, { label: "Pending", color: "bg-amber-500" }, { label: "Declined", color: "bg-rose-500" }, { label: "Completed", color: "bg-slate-400" }].map((item) => <span key={item.label} className="inline-flex items-center gap-1.5"><span className={`h-2 w-2 rounded-full ${item.color}`} />{item.label}</span>)}
-                        </div>
-                        {filteredBookings.length === 0 && <p className="py-8 text-center text-sm text-slate-500">No bookings match your current filters.</p>}
-                    </div>
+                    <CalendarView
+                        events={filteredEvents}
+                        date={selectedDate}
+                        onDateChange={setSelectedDate}
+                        onEventClick={handleEventClick}
+                        startHour={8}
+                        endHour={18}
+                        showPerson
+                        showStatus
+                        legendItems={appointmentStatusLegend}
+                    />
                 )}
             </section>
 
@@ -995,7 +1027,7 @@ function DetailRow({
     label,
     value,
 }: {
-    icon: React.ReactNode;
+    icon: ReactNode;
     label: string;
     value: string;
 }) {
