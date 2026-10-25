@@ -193,7 +193,7 @@ export default function BranchesPage() {
                         color: "bg-emerald-50 text-emerald-700",
                     },
                     {
-                        label: "Practitioners across branches",
+                        label: "Doctors across branches",
                         value: branches.reduce((total, branch) => total + branch.doctors, 0),
                         icon: Users,
                         color: "bg-[#DDF3E7] text-[#176B55]",
@@ -279,7 +279,7 @@ export default function BranchesPage() {
                     <table className="w-full min-w-[850px] text-left">
                         <thead>
                             <tr className="border-y border-slate-100 bg-slate-50/80">
-                                {["Branch", "Contact details", "Practitioners", "Status", "Actions"].map((heading) => (
+                                {["Branch", "Contact details", "Doctors", "Status", "Actions"].map((heading) => (
                                     <th
                                         key={heading}
                                         className="whitespace-nowrap px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500"
@@ -325,7 +325,7 @@ export default function BranchesPage() {
                                     <td className="px-5 py-4">
                                         <span className="inline-flex items-center gap-2 text-sm text-slate-600">
                                             <Users size={15} className="text-slate-400" />
-                                            {branch.doctors} practitioners
+                                            {branch.doctors} doctors
                                         </span>
                                     </td>
                                     <td className="px-5 py-4">
@@ -389,7 +389,7 @@ export default function BranchesPage() {
                                     Add branch
                                 </h3>
                                 <p className="mt-1 text-sm text-slate-500">
-                                    Add the branch's basic details. You can configure practitioners and schedules later.
+                                    Add the branch's basic details. You can configure doctors and schedules later.
                                 </p>
                             </div>
                             <button
@@ -467,7 +467,7 @@ export default function BranchesPage() {
                                         <div>
                                             <p className="text-sm font-semibold text-[#173F35]">Configure later</p>
                                             <p className="mt-1 text-xs leading-5 text-slate-500">
-                                                Practitioners, opening hours, and appointment schedules can be configured after the branch is created.
+                                                Doctors, opening hours, and appointment schedules can be configured after the branch is created.
                                             </p>
                                         </div>
                                     </div>

@@ -219,8 +219,8 @@ export default function BookingWizard() {
           </div>
         </div>
 
-        <footer className="border-t border-slate-100 px-5 py-4 text-center text-xs text-slate-400">
-          Appointment booking made simple · Powered by Medora
+        <footer className="border-t border-slate-100 px-5 py-4 text-center text-xs text-slate-400 flex gap-2 w-full justify-center">
+          Appointment booking made simple · Powered by <img src="/full-logo.png" className="w-16" />
         </footer>
       </div>
     </main>

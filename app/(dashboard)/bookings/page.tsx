@@ -536,7 +536,7 @@ export default function BookingsPage() {
                                 type="search"
                                 value={search}
                                 onChange={(event) => { setSearch(event.target.value); setCurrentPage(1); }}
-                                placeholder="Search patient, practitioner..."
+                                placeholder="Search patient, doctor..."
                                 aria-label="Search appointments"
                                 className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#82A995] focus:ring-2 focus:ring-[#DDF3E7] sm:h-11 sm:pl-10"
                             />
@@ -578,7 +578,7 @@ export default function BookingsPage() {
                         <div className="overflow-x-auto">
                             <table className="w-full min-w-[900px] text-left">
                                 <thead><tr className="border-y border-slate-100 bg-slate-50/80">
-                                    {["Patient", "Date & time", "Service", "Practitioner", "Branch", "Status", "Action"].map((heading) => <th key={heading} className="whitespace-nowrap px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{heading}</th>)}
+                                    {["Patient", "Date & time", "Service", "Doctor", "Branch", "Status", "Action"].map((heading) => <th key={heading} className="whitespace-nowrap px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{heading}</th>)}
                                 </tr></thead>
                                 <tbody className="divide-y divide-slate-100">
                                     {paginatedBookings.map((booking) => (
@@ -718,14 +718,14 @@ export default function BookingsPage() {
                                 </label>
 
                                 <label className="block text-sm font-medium text-slate-700">
-                                    Practitioner *
+                                    Doctor *
                                     <select
                                         required
                                         value={newBooking.doctor}
                                         onChange={(event) => setNewBooking((current) => ({ ...current, doctor: event.target.value }))}
                                         className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-[#82A995]"
                                     >
-                                        <option value="">Select a practitioner</option>
+                                        <option value="">Select a doctor</option>
                                         {[...new Set(bookings.map((booking) => booking.doctor))].map((doctor) => (
                                             <option key={doctor} value={doctor}>{doctor}</option>
                                         ))}
@@ -914,7 +914,7 @@ export default function BookingsPage() {
                                     />
                                     <DetailRow
                                         icon={<Stethoscope size={19} />}
-                                        label="Practitioner"
+                                        label="Doctor"
                                         value={selectedBooking.doctor}
                                     />
                                     <DetailRow

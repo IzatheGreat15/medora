@@ -59,7 +59,7 @@ const stats = [
     color: "bg-amber-50 text-amber-700",
   },
   {
-    label: "Practitioners",
+    label: "Doctors",
     value: "4",
     note: "Across your branches",
     icon: Users,
@@ -396,7 +396,7 @@ export default function DashboardPage() {
               </h2>
             </div>
             <p className="mt-1 text-sm text-slate-500">
-              See which practitioners are assigned to each branch and their scheduled hours.
+              See which doctors are assigned to each branch and their scheduled hours.
             </p>
           </div>
           <p className="text-sm font-medium text-slate-500">
@@ -505,7 +505,7 @@ export default function DashboardPage() {
           </p>
           <p className="mt-1 text-sm leading-6 text-slate-600">
             The charts, appointments, and doctor schedules currently use sample data.
-            Connect your appointment, service, practitioner, branch, and working-hours
+            Connect your appointment, service, doctor, branch, and working-hours
             records to display live clinic information.
           </p>
         </div>

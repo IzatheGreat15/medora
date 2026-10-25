@@ -25,7 +25,7 @@ export default function ServiceStep({
       </h1>
 
       <p className="mt-2 text-sm leading-6 text-slate-500 sm:text-base">
-        Choose a service to see matching practitioners and appointment times.
+        Choose a service to see matching doctors and appointment times.
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-3">

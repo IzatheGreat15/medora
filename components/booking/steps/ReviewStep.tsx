@@ -57,7 +57,7 @@ export default function ReviewStep({
       icon: Stethoscope,
     },
     {
-      label: 'Practitioner',
+      label: 'Doctor',
       value: doctor?.name,
       detail: doctor?.title,
       icon: UserRound,

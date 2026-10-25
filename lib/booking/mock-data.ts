@@ -56,7 +56,7 @@ export const services: Service[] = [
     id: 'skin',
     name: 'Skin Consultation',
     description:
-      'Discuss common skin concerns with a practitioner.',
+      'Discuss common skin concerns with a doctor.',
     durationMinutes: 30,
     price: 900,
     category: 'Specialist',

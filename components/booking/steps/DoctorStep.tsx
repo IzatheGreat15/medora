@@ -21,11 +21,11 @@ export default function DoctorStep({
       </p>
 
       <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-        Choose your practitioner
+        Choose your doctor
       </h1>
 
       <p className="mt-2 text-sm leading-6 text-slate-500 sm:text-base">
-        Showing practitioners who offer your selected service at this branch.
+        Showing doctors who offer your selected service at this branch.
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -82,7 +82,7 @@ export default function DoctorStep({
             </div>
 
             <h2 className="mt-3 font-semibold text-slate-800">
-              No practitioners available
+              No doctors available
             </h2>
 
             <p className="mt-1 text-sm leading-5 text-slate-500">

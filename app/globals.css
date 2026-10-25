@@ -10,6 +10,17 @@
   --color-foreground: #173f35;
   --color-muted: #53645d;
   --font-sans: var(--font-plus-jakarta-sans);
+
+  --animate-marquee: marquee 28s linear infinite;
+
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
 }
 
 html {

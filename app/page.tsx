@@ -24,6 +24,7 @@ import {
   CreditCard,
   ChevronRight,
   Sparkles,
+  MessageCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -59,7 +60,7 @@ const steps = [
     number: "01",
     title: "Set up your clinic",
     description:
-      "Add your branches, practitioners, services, and opening hours.",
+      "Add your branches, doctors, services, and opening hours.",
   },
   {
     number: "02",
@@ -78,55 +79,59 @@ const steps = [
 const plans = [
   {
     name: "Starter",
-    description: "Perfect for small clinics getting started.",
+    description: "Perfect for solo doctors and small clinics.",
     price: "₱999",
     period: "/ month",
     highlighted: true,
     features: [
-      "0–3 practitioners",
+      "1 doctor",
       "1 branch",
       "Unlimited appointments",
       "Online booking page",
       "Appointment management",
+      "Ongoing Support",
     ],
     cta: "Get started",
     href: "/signup",
   },
   {
     name: "Professional",
-    description: "For growing clinics with bigger teams.",
+    description: "For clinics with growing teams.",
     price: "₱1,999",
     period: "/ month",
     highlighted: false,
     features: [
-      "4–6 practitioners",
-      "Up to 3 branches",
+      "Up to 3 doctors",
+      "1 branch",
       "Unlimited appointments",
       "Online booking page",
       "Centralized scheduling",
-      "Multi-branch management",
+      "Doctor management",
+      "Ongoing Support",
     ],
     cta: "Get started",
     href: "/signup",
   },
   {
-    name: "Enterprise",
-    description: "For larger clinics and clinic networks.",
-    price: "Custom pricing",
-    period: "",
+    name: "Clinic Plus",
+    description: "For established clinics managing multiple locations.",
+    price: "₱2,999",
+    period: "/ month",
     highlighted: false,
     features: [
-      "7+ practitioners",
-      "More than 3 branches",
+      "4–6 doctors",
+      "Up to 3 branches",
       "Unlimited appointments",
-      "Custom requirements",
-      "Tailored onboarding",
-      "Priority support",
+      "Online booking page",
+      "Centralized scheduling",
+      "Multi-branch management",
+      "Ongoing Support",
     ],
-    cta: "Contact us",
-    href: "mailto:hello@medora.ph",
+    cta: "Get started",
+    href: "/signup",
   },
 ];
+
 
 const benefits = [
   { icon: Infinity, text: "Unlimited appointments" },
@@ -294,11 +299,177 @@ function DashboardPreview() {
   );
 }
 
+function MessageCircleIcon() {
+  return <MessageCircle size={15} />;
+}
+
+function ConversationProblemSection() {
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const element = document.getElementById("problem");
+    if (!element) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.18 },
+    );
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  const conversations = [
+    {
+      label: "Availability",
+      message: "Hi po, may slot pa po si Dr. Santos today?",
+      reply: "I-check ko po muna ang schedule niya.",
+      note: "Staff has to stop and check the doctor's calendar.",
+    },
+    {
+      label: "Specific doctor",
+      message: "Available po ba si Dra. Reyes sa Saturday?",
+      reply: "Wait lang po, I'll confirm with the branch.",
+      note: "Availability questions repeat across doctors and branches.",
+    },
+    {
+      label: "Price and duration",
+      message: "How much po ang consultation? How long will it take?",
+      reply: "I'll send you the details po.",
+      note: "The same service questions take time to answer again and again.",
+    },
+  ];
+
+  return (
+    <section id="problem" className="scroll-mt-24 bg-white py-20 sm:py-24">
+      <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
+        <div className="mx-auto max-w-3xl text-center">
+          <span className="inline-flex items-center gap-2 rounded-full bg-[#DDF3E7] px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-[#173F35]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#176B55]" />
+            The everyday problem
+          </span>
+          <h2 className="mt-5 text-3xl font-bold tracking-tight text-[#173F35] sm:text-4xl">
+            Your clinic shouldn’t run on endless chat messages.
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl leading-7 text-slate-600">
+            “Is there a slot for this doctor?” “What time are they available?”
+            “How much is the consultation?” Your staff shouldn’t have to
+            answer every question manually just to get an appointment booked.
+          </p>
+        </div>
+
+        <div className="mt-12 grid gap-5 lg:grid-cols-3">
+          {conversations.map((conversation, index) => (
+            <article
+              key={conversation.label}
+              style={{ transitionDelay: isVisible ? `${index * 180}ms` : "0ms" }}
+              className={`rounded-2xl border border-slate-200 bg-[#F7F9F6] p-5 shadow-sm transition-all duration-700 ease-out ${isVisible
+                ? "translate-y-0 opacity-100"
+                : "translate-y-10 opacity-0"
+                }`}
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wide text-[#32866B]">
+                  {conversation.label}
+                </span>
+                <MessageCircleIcon />
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex justify-start">
+                  <p className="max-w-[95%] rounded-2xl rounded-tl-sm bg-white px-4 py-3 text-sm leading-6 text-slate-700 shadow-sm">
+                    {conversation.message}
+                  </p>
+                </div>
+                <div className="flex justify-end">
+                  <p className="max-w-[95%] rounded-2xl rounded-tr-sm bg-[#DDF3E7] px-4 py-3 text-sm leading-6 text-[#173F35]">
+                    {conversation.reply}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-5 border-t border-slate-200 pt-4">
+                <p className="text-sm font-semibold leading-6 text-[#173F35]">
+                  {conversation.note}
+                </p>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <div
+          style={{ transitionDelay: isVisible ? "620ms" : "0ms" }}
+          className={`mt-8 flex flex-col items-start gap-4 rounded-2xl bg-[#173F35] p-6 text-white transition-all duration-700 ease-out sm:flex-row sm:items-center sm:justify-between sm:p-8 ${isVisible
+            ? "translate-y-0 opacity-100"
+            : "translate-y-8 opacity-0"
+            }`}
+        >
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/10 text-[#B8E8D0]">
+              <CalendarCheck size={24} />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold">
+                Replace the back-and-forth with a clearer booking process.
+              </h3>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-white/75">
+                Let patients send appointment requests online while your team
+                manages doctors, branches, services, and schedules from one place.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="#how-it-works"
+            className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-[#173F35] transition hover:bg-[#DDF3E7]"
+          >
+            See how Medora helps <ArrowRight size={16} />
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function Home() {
   const [year, setYear] = useState(0);
   useEffect(() => {
     setYear(new Date().getFullYear());
   });
+
+  const benefits = [
+    { icon: Building2, text: "Organize your clinic" },
+    { icon: Stethoscope, text: "Manage your doctors" },
+    { icon: CalendarDays, text: "Simplify scheduling" },
+    { icon: Users, text: "Help patients book" },
+    { icon: MessageCircle, text: "Reduce scheduling back-and-forth" },
+  ];
+
+
+  const [visibleMessages, setVisibleMessages] = useState(1);
+
+  useEffect(() => {
+    const messageCount = 4;
+    const messageDelay = 2200;
+    const resetDelay = 3000;
+
+    const timer = window.setInterval(() => {
+      setVisibleMessages((current) => {
+        if (current >= messageCount) {
+          return 0;
+        }
+
+        return current + 1;
+      });
+    }, messageDelay);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
 
   return (
     <main className="overflow-hidden bg-[#F7F9F6] text-slate-700">
@@ -348,185 +519,174 @@ export default function Home() {
       </header>
 
 
-      {/* Hero */}
-      <section className="relative isolate min-h-[680px] overflow-hidden bg-[#F7F9F6] lg:min-h-[760px]">
-        {/* Background image */}
-        <img
-          src="https://pidswebs.pids.gov.ph/CDN/featured-image/Thumbnail_PR30-24.jpg"
-          alt=""
+      {/* Hero: lead with the problem Medora solves */}
+      <section className="relative isolate overflow-hidden bg-[#F7F9F6]">
+        {/* Background photo with layered green/white gradients for readability */}
+        <div
           aria-hidden="true"
-          className="absolute inset-0 -z-20 h-full w-full object-cover object-center"
-        />
+          className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+        >
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{
+              backgroundImage:
+                "url('https://images.unsplash.com/photo-1777269749032-d8d458ae594d?q=80&w=1074&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D')",
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#F7F9F6]/95 via-[#F7F9F6]/85 to-[#DDF3E7]/55" />
+          <div className="absolute inset-0 bg-gradient-to-b from-white/25 via-transparent to-[#DDF3E7]/45" />
+          <div className="absolute -right-32 -top-24 h-[420px] w-[420px] rounded-full bg-[#DDF3E7]/65 blur-3xl" />
+          <div className="absolute -bottom-40 left-[28%] h-[360px] w-[520px] rounded-full bg-[#E8F4EC]/70 blur-3xl" />
+        </div>
 
-        {/* Fade the image to white on the left for readable text */}
-        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[#F7F9F6] via-[#F7F9F6]/95 to-[#F7F9F6]/10" />
-
-        {/* Additional soft overlay on smaller screens */}
-        <div className="absolute inset-0 -z-10 bg-white/10 lg:bg-transparent" />
-
-        <div className="mx-auto grid min-h-[680px] max-w-7xl items-center gap-12 px-5 py-16 sm:px-8 lg:min-h-[760px] lg:grid-cols-2 lg:px-10 lg:py-20">
-          {/* Left: Hero copy */}
-          <div className="relative z-10 max-w-xl">
-            <span className="inline-flex items-center gap-2 rounded-full bg-[#DDF3E7]/95 px-4 py-2 text-xs font-semibold text-[#173F35] sm:text-sm">
-              <span className="h-2 w-2 rounded-full bg-[#176B55]" />
-              Clinic management, made simpler
+        <div className="mx-auto grid min-h-[680px] max-w-7xl items-center gap-12 px-5 py-16 sm:px-8 lg:min-h-[720px] lg:grid-cols-[0.95fr_1.05fr] lg:px-10 lg:py-20">
+          <div className="relative z-10 max-w-2xl">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#B8D8C7] bg-white/90 px-4 py-2 text-xs font-bold text-[#176B55] shadow-sm sm:text-sm">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-[#4D9F82]" />
+              Built for busy clinics and their patients
             </span>
 
-            <h1 className="mt-6 text-5xl font-extrabold leading-[1.08] tracking-tight text-[#173F35] sm:text-6xl lg:text-7xl">
-              More time for{" "}
-              <span className="text-[#4D9F82]">better care.</span>
+            <h1 className="mt-6 text-4xl font-extrabold leading-[1.08] tracking-tight text-[#173F35] sm:text-5xl lg:text-6xl">
+              All-In-One Solution
+              <span className="mt-2 block text-[#4D9F82]">
+                For Your Clinic
+              </span>
             </h1>
 
-            <p className="mt-6 max-w-lg text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">
-              Manage appointments, doctors, and clinic schedules in one simple
-              workspace. Let patients book online while your team focuses on
-              what matters.
+            <p className="mt-6 max-w-xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">
+              Medora gives patients a clearer way to request appointments and helps your team manage availability and booking requests in one place, with less back-and-forth.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 href="/signup"
-                className="inline-flex items-center gap-2 rounded-xl bg-[#176B55] px-6 py-4 font-semibold text-white shadow-lg shadow-[#176B55]/20 transition hover:bg-[#173F35]"
+                className="inline-flex items-center gap-2 rounded-xl bg-[#176B55] px-6 py-4 font-semibold text-white shadow-lg shadow-[#176B55]/20 transition hover:-translate-y-0.5 hover:bg-[#173F35]"
               >
-                Get started <ArrowRight size={18} />
+                Simplify appointment booking <ArrowRight size={18} />
               </Link>
 
               <Link
-                href="#how-it-works"
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white/90 px-6 py-4 font-semibold text-[#173F35] transition hover:bg-white"
+                href="#problem"
+                className="inline-flex items-center gap-2 rounded-xl border border-[#C9D8CF] bg-white/90 px-6 py-4 font-semibold text-[#173F35] transition hover:bg-white"
               >
-                See how it works
+                See what changes <ChevronRight size={18} />
               </Link>
             </div>
 
-            <div className="mt-8 space-y-3">
+            <div className="mt-8 flex flex-wrap gap-x-5 gap-y-3 text-sm font-medium text-slate-600">
               {[
                 "Online appointment requests",
-                "Multi-branch support",
-                "Flexible scheduling",
+                "Doctor availability in one place",
+                "Multi-branch scheduling",
               ].map((item) => (
-                <div key={item} className="flex items-center gap-3">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#4D9F82] text-white">
-                    <Check size={15} strokeWidth={3} />
-                  </span>
-                  <span className="text-sm font-medium text-slate-700 sm:text-base">
-                    {item}
-                  </span>
-                </div>
+                <span key={item} className="inline-flex items-center gap-2">
+                  <CheckCircle2 size={17} className="text-[#32866B]" />
+                  {item}
+                </span>
               ))}
             </div>
           </div>
 
-          {/* Right: Floating appointment cards */}
-          <div className="relative hidden min-h-[500px] lg:block">
-            {/* Upcoming appointments */}
-            <div className="absolute left-0 top-[8%] z-20 w-[310px] rounded-2xl border border-white/80 bg-white/95 p-5 shadow-xl shadow-slate-900/10 backdrop-blur-md">
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="font-bold text-[#173F35]">
-                  Upcoming appointments
-                </h3>
-                <CalendarDays size={19} className="text-[#176B55]" />
-              </div>
-
-              <div className="mt-2 flex justify-between text-xs text-slate-500">
-                <span>Today&apos;s schedule</span>
-                <span className="font-semibold text-[#176B55]">View all</span>
-              </div>
-
-              {[
-                ["09:00", "Maria Santos", "General consultation"],
-                ["10:30", "Juan Dela Cruz", "Dental cleaning"],
-                ["11:00", "Ana Reyes", "Follow-up visit"],
-              ].map(([time, name, service]) => (
-                <div
-                  key={time}
-                  className="mt-4 flex gap-3 border-t border-slate-100 pt-3"
-                >
-                  <span className="text-xs font-bold text-[#176B55]">{time}</span>
+          {/* Conversation pain point visual */}
+          <div className="relative mx-auto w-full max-w-xl">
+            <div className="absolute -inset-4 rounded-[2rem] bg-gradient-to-br from-[#DDF3E7] via-white to-[#B8D8C7] blur-xl" />
+            <div className="relative overflow-hidden rounded-[1.75rem] border border-white bg-white/95 p-4 shadow-2xl shadow-[#173F35]/10 backdrop-blur sm:p-6">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#DDF3E7] text-[#176B55]">
+                    <Users size={21} />
+                  </div>
                   <div>
-                    <p className="text-sm font-semibold text-[#173F35]">{name}</p>
-                    <p className="mt-1 text-xs text-slate-500">{service}</p>
+                    <p className="font-bold text-[#173F35]">Clinic inbox</p>
+                    <p className="mt-0.5 text-xs text-slate-500">A familiar busy day</p>
                   </div>
                 </div>
-              ))}
-            </div>
 
-            {/* Appointment request */}
-            <div className="absolute bottom-[4%] left-[18%] z-30 w-[300px] rounded-2xl border border-white/80 bg-white/95 p-5 shadow-xl shadow-slate-900/10 backdrop-blur-md">
-              <h3 className="font-bold text-[#173F35]">
-                New appointment request
-              </h3>
+                <span className="animate-pulse rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                  12 unread
+                </span>
 
-              <div className="mt-4 flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#DDF3E7] text-[#176B55]">
-                  <Users size={20} />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-[#173F35]">
-                    New patient
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Consultation request
-                  </p>
-                </div>
               </div>
 
-              <div className="mt-4 flex items-center gap-2 text-sm text-slate-600">
-                <CalendarDays size={16} className="text-[#176B55]" />
-                Appointment details
-              </div>
-
-              <div className="mt-2 flex items-center gap-2 text-sm text-slate-600">
-                <Clock3 size={16} className="text-[#176B55]" />
-                Requested time
-              </div>
-
-              <div className="mt-5 flex gap-2">
-                <button
-                  type="button"
-                  className="flex-1 rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-600"
+              <div className="space-y-4 py-5">
+                <div
+                  className={`flex justify-start transition-all duration-700 ease-out ${visibleMessages >= 1
+                    ? "translate-y-0 opacity-100"
+                    : "translate-y-5 opacity-0"
+                    }`}
                 >
-                  Decline
-                </button>
-                <button
-                  type="button"
-                  className="flex-1 rounded-lg bg-[#176B55] px-3 py-2.5 text-sm font-semibold text-white"
+                  <div className="max-w-[88%] rounded-2xl rounded-tl-sm bg-slate-100 px-4 py-3 shadow-sm">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                      Patient · 9:12 AM
+                    </p>
+                    <p className="mt-1.5 text-sm leading-6 text-slate-700">
+                      Hi! Is there an available slot for Dr. Santos tomorrow?
+                    </p>
+                  </div>
+                </div>
+
+                <div
+                  className={`flex justify-end transition-all duration-700 ease-out ${visibleMessages >= 2
+                    ? "translate-y-0 opacity-100"
+                    : "translate-y-5 opacity-0"
+                    }`}
                 >
-                  Approve
-                </button>
+                  <div className="max-w-[88%] rounded-2xl rounded-tr-sm bg-[#DDF3E7] px-4 py-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#32866B]">Reception · 9:16 AM</p>
+                    <p className="mt-1.5 text-sm leading-6 text-[#173F35]">
+                      Let me check the schedule first. One moment, please.
+                    </p>
+                  </div>
+                </div>
+                <div
+                  className={`flex justify-start transition-all duration-700 ease-out ${visibleMessages >= 3
+                    ? "translate-y-0 opacity-100"
+                    : "translate-y-5 opacity-0"
+                    }`}
+                >
+                  <div className="max-w-[88%] rounded-2xl rounded-tl-sm bg-slate-100 px-4 py-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Another patient · 9:18 AM</p>
+                    <p className="mt-1.5 text-sm leading-6 text-slate-700">
+                      How about Friday? And how much is the consultation?
+                    </p>
+                  </div>
+                </div>
+                <div
+                  className={`flex items-center gap-2 rounded-xl border border-dashed border-[#B8D8C7] bg-[#F7FBF8] px-3 py-3 text-xs font-medium text-[#53645D] transition-all duration-700 ${visibleMessages >= 4
+                    ? "translate-y-0 opacity-100"
+                    : "translate-y-3 opacity-0"
+                    }`}
+                >
+
+                  <Clock3 size={16} className="shrink-0 text-[#176B55]" />
+                  Your staff is checking schedules instead of helping the next patient.
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 rounded-xl bg-[#173F35] p-4 text-white">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10">
+                  <CalendarCheck size={20} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold">With Medora</p>
+                  <p className="mt-1 text-xs leading-5 text-white/75">
+                    Patients send requests online. Your team reviews them in one organized schedule.
+                  </p>
+                </div>
+                <CheckCircle2 size={21} className="shrink-0 text-[#B8E8D0]" />
               </div>
             </div>
-
-            {/* Floating calendar icon */}
-            <div className="absolute right-0 top-[35%] z-20 flex h-20 w-20 items-center justify-center rounded-2xl border border-white/80 bg-white/95 text-[#176B55] shadow-xl">
-              <CalendarCheck size={30} />
+            <div className="absolute -right-2 -top-4 hidden items-center gap-2 rounded-xl border border-white bg-white px-3 py-2.5 text-xs font-semibold text-[#176B55] shadow-lg sm:flex">
+              <MessageCircleIcon />
+              Same questions, every day
             </div>
           </div>
         </div>
       </section>
 
+      {/* The problem: conversation bubbles reveal as you scroll */}
+      <ConversationProblemSection />
 
-      {/* Quick benefits */}
-      <section className="border-y border-slate-200/70 bg-[#173F35] text-white">
-        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-5 px-5 py-8 sm:px-8 md:grid-cols-4 lg:px-10">
-          {[
-            { icon: Building2, text: "Organize your clinic" },
-            { icon: Stethoscope, text: "Manage your doctors" },
-            { icon: CalendarDays, text: "Simplify scheduling" },
-            { icon: Users, text: "Help patients book" },
-          ].map(({ icon: Icon, text }) => (
-            <div
-              key={text}
-              className="flex items-center justify-center gap-3 py-2"
-            >
-              <Icon size={27} className="shrink-0 text-white" />
-              <span className="text-sm font-semibold text-white">
-                {text}
-              </span>
-            </div>
-          ))}
-        </div>
-      </section>
 
       {/* Patient booking */}
       <section id="features" className="scroll-mt-24 py-20 sm:py-24">
@@ -623,7 +783,7 @@ export default function Home() {
               Everything you need in one place.
             </h2>
             <p className="mt-5 leading-7 text-slate-600">
-              Give your staff a clear overview of appointments, practitioners,
+              Give your staff a clear overview of appointments, doctors,
               branches, and schedules with one easy-to-use workspace.
             </p>
 
@@ -784,15 +944,23 @@ export default function Home() {
               Talk to our team.
             </a>
           </p>
+        </div>
+      </section>
 
-          <div className="mx-auto mt-12 grid max-w-4xl grid-cols-2 gap-5 sm:grid-cols-4">
-            {benefits.map(({ icon: Icon, text }) => (
+      {/* Quick benefits */}
+      <section className="overflow-hidden border-y border-slate-200/70 bg-[#173F35] text-white">
+        <div className="group relative py-6">
+          <div className="flex w-max animate-marquee group-hover:[animation-play-state:paused]">
+            {[...benefits, ...benefits].map(({ icon: Icon, text }, index) => (
               <div
-                key={text}
-                className="flex items-center justify-center gap-2 text-center text-xs font-medium text-slate-600 sm:text-sm"
+                key={`${text}-${index}`}
+                className="flex shrink-0 items-center gap-3 px-7 py-2 sm:px-10"
               >
-                <Icon size={20} className="shrink-0 text-brand" />
-                {text}
+                <Icon size={25} className="shrink-0 text-[#DDF3E7]" />
+                <span className="whitespace-nowrap text-sm font-semibold text-white sm:text-base">
+                  {text}
+                </span>
+                <span className="ml-5 h-1.5 w-1.5 rounded-full bg-[#82A995]" />
               </div>
             ))}
           </div>

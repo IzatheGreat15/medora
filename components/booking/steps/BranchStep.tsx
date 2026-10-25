@@ -95,7 +95,7 @@ export default function BranchStep({
             </div>
 
             <p className="mt-5 rounded-xl bg-[#F0F8F3] px-4 py-3 text-sm leading-5 text-[#315F50]">
-                You can choose a service and practitioner available at this branch in
+                You can choose a service and doctor available at this branch in
                 the next steps.
             </p>
         </section>

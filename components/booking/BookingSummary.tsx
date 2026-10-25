@@ -50,7 +50,7 @@ export default function BookingSummary({
       icon: Stethoscope,
     },
     {
-      label: 'Practitioner',
+      label: 'Doctor',
       value: doctor?.name,
       icon: UserRound,
     },
