@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
   Clock3,
@@ -20,6 +20,7 @@ import BookingStatusChart from "@/components/dashboard/charts/BookingStatusChart
 import PopularServicesChart from "@/components/dashboard/charts/PopularServicesChart";
 import BranchPerformanceChart from "@/components/dashboard/charts/BranchPerformanceChart";
 import StatCard from "@/components/dashboard/charts/StatCard";
+import { getCurrentDate } from "@/lib/date";
 
 type AppointmentStatus = "Confirmed" | "Pending" | "Completed" | "Declined";
 
@@ -188,9 +189,12 @@ const dutyStyles: Record<DoctorDuty["status"], string> = {
   "Off duty": "bg-slate-100 text-slate-600",
 };
 
-function formatTime(time: string) {
+function formatTime(time: string, currentDate: Date|null) {
+  if (currentDate === null)
+    return;
+
   const [hours, minutes] = time.split(":").map(Number);
-  const date = new Date();
+  const date = currentDate;
   date.setHours(hours, minutes, 0, 0);
   return date.toLocaleTimeString("en-PH", {
     hour: "numeric",
@@ -203,6 +207,7 @@ export default function DashboardPage() {
   const [dateRange, setDateRange] = useState("30d");
   const [appointmentFilter, setAppointmentFilter] = useState("All");
   const [branchFilter, setBranchFilter] = useState("All branches");
+  const [currentDate, setCurrentDate] = useState<Date|null>(null);
 
   const branches = useMemo(
     () => [...new Set(doctorsOnDuty.map((doctor) => doctor.branch))],
@@ -225,6 +230,10 @@ export default function DashboardPage() {
       doctors: doctorsOnDuty.filter((doctor) => doctor.branch === branch),
     }));
   }, [branches]);
+
+  useEffect(() => {
+    setCurrentDate(getCurrentDate());
+  }, []);
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 sm:space-y-8">
@@ -317,7 +326,7 @@ export default function DashboardPage() {
                     </div>
                     <div>
                       <p className="font-semibold text-[#173F35]">
-                        {formatTime(appointment.time)}
+                        {formatTime(appointment.time, currentDate)}
                       </p>
                       <p className="text-xs text-slate-500">{appointment.id}</p>
                     </div>
@@ -432,7 +441,7 @@ export default function DashboardPage() {
                       <p className="mt-0.5 text-sm text-slate-500">{doctor.specialty}</p>
                       <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
                         <Clock3 size={13} />
-                        {formatTime(doctor.start)} – {formatTime(doctor.end)}
+                        {formatTime(doctor.start, currentDate)} – {formatTime(doctor.end, currentDate)}
                       </p>
                     </div>
                     <span
