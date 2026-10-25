@@ -7,15 +7,18 @@ import {
   Building2,
   CalendarCheck,
   CalendarClock,
+  CalendarDays,
   CalendarX,
   Check,
   ChevronDown,
+  CreditCard,
   Clock,
   ImagePlus,
   Mail,
   MessageSquare,
   Save,
   Upload,
+  Users,
   X,
 } from "lucide-react";
 import StaffSection from "@/components/settings/StaffSection";
@@ -87,6 +90,7 @@ export default function SettingsPage() {
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [logoError, setLogoError] = useState("");
+  const [planRequestMessage, setPlanRequestMessage] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -452,6 +456,104 @@ export default function SettingsPage() {
 
       {/* Staff section is maintained as a separate component */}
       <StaffSection />
+
+      {/* Current subscription plan */}
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        <div className="flex items-start gap-3 border-b border-slate-100 p-5 sm:p-6">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#DDF3E7] text-[#176B55]">
+            <CreditCard size={21} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="font-semibold text-[#173F35]">Subscription plan</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              View your clinic’s current Medora plan, included limits, and upcoming billing date.
+            </p>
+          </div>
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#DDF3E7] px-2.5 py-1 text-xs font-semibold text-[#176B55]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#176B55]" />
+            Active
+          </span>
+        </div>
+
+        <div className="space-y-5 p-5 sm:p-6">
+          <div className="flex flex-col gap-4 rounded-2xl border border-[#DDECE2] bg-[#F7F9F6] p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-medium text-[#53645D]">Current plan</p>
+              <h3 className="mt-1 text-2xl font-bold tracking-tight text-[#173F35]">
+                Professional
+              </h3>
+              <p className="mt-1 text-sm text-[#53645D]">
+                For clinics managing multiple doctors at one branch.
+              </p>
+            </div>
+            <div className="sm:text-right">
+              <p className="text-3xl font-bold tracking-tight text-[#173F35]">
+                ₱1,999<span className="text-sm font-medium text-[#53645D]"> / month</span>
+              </p>
+              <p className="mt-1 text-xs text-[#53645D]">Billed monthly</p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex items-start gap-3 rounded-xl border border-slate-200 p-4">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#DDF3E7] text-[#176B55]">
+                <Users size={18} />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-slate-500">Doctor limit</p>
+                <p className="mt-1 font-semibold text-[#173F35]">Up to 3 doctors</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 rounded-xl border border-slate-200 p-4">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#DDF3E7] text-[#176B55]">
+                <Building2 size={18} />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-slate-500">Branch limit</p>
+                <p className="mt-1 font-semibold text-[#173F35]">1 branch</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-4 rounded-xl border border-slate-200 p-4 sm:grid-cols-2">
+            <div className="flex items-start gap-3">
+              <CalendarDays size={19} className="mt-0.5 shrink-0 text-[#176B55]" />
+              <div>
+                <p className="text-xs font-medium text-slate-500">Next billing date</p>
+                <p className="mt-1 font-semibold text-[#173F35]">November 1, 2026</p>
+                <p className="mt-1 text-xs text-[#53645D]">7 days remaining</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <Check size={19} className="mt-0.5 shrink-0 text-[#176B55]" />
+              <div>
+                <p className="text-xs font-medium text-slate-500">Billing status</p>
+                <p className="mt-1 font-semibold text-[#176B55]">Up to date</p>
+                <p className="mt-1 text-xs text-[#53645D]">No overdue payment recorded.</p>
+              </div>
+            </div>
+          </div>
+
+          {planRequestMessage && (
+            <p role="status" className="rounded-xl border border-[#B9DCC8] bg-[#DDF3E7] p-3 text-sm text-[#173F35]">
+              {planRequestMessage}
+            </p>
+          )}
+
+          <div className="flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
+            <p className="max-w-xl text-xs leading-5 text-slate-500">
+              Need a different plan? Contact the Medora team to request a change. Your subscription and billing details are managed by your platform administrator.
+            </p>
+            <button
+              type="button"
+              onClick={() => setPlanRequestMessage("Plan change requests are not connected yet. Please contact your Medora platform administrator.")}
+              className="inline-flex h-10 shrink-0 items-center justify-center rounded-xl border border-[#176B55] px-4 text-sm font-semibold text-[#176B55] transition hover:bg-[#F0F8F3]"
+            >
+              Request plan change
+            </button>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
