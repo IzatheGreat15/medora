@@ -25,6 +25,9 @@ import {
   ChevronRight,
   Sparkles,
   MessageCircle,
+  LayoutDashboard,
+  Globe,
+  Bell,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -472,9 +475,9 @@ export default function Home() {
 
 
   return (
-    <main className="overflow-hidden bg-[#F7F9F6] text-slate-700">
+    <main className="overflow-clip bg-[#F7F9F6] text-slate-700">
       {/* Navigation */}
-      <header className="sticky top-0 z-50 border-b border-slate-200/70 bg-white/90 backdrop-blur-xl">
+      <header className="sticky top-0 z-[100] w-full border-b border-slate-200/70 bg-white/90 backdrop-blur-xl">
         <nav className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8 lg:px-10">
           <Logo />
 
@@ -485,11 +488,11 @@ export default function Home() {
             <Link href="#pricing" className="text-sm hover:text-brand">
               Pricing
             </Link>
-            <Link href="#how-it-works" className="text-sm hover:text-brand">
-              How it works
-            </Link>
             <Link href="#clinics" className="text-sm hover:text-brand">
               For clinics
+            </Link>
+            <Link href="#how-it-works" className="text-sm hover:text-brand">
+              How it works
             </Link>
           </div>
 
@@ -689,122 +692,103 @@ export default function Home() {
 
 
       {/* Patient booking */}
+
       <section id="features" className="scroll-mt-24 py-20 sm:py-24">
-        <div className="mx-auto grid max-w-7xl items-center gap-12 px-5 sm:px-8 lg:grid-cols-2 lg:gap-16 lg:px-10">
-          <div className="relative min-h-[320px] overflow-hidden rounded-3xl sm:min-h-[440px]">
-            <img
-              src="https://myoona.ph/content/dam/oona/aem-images/blog-ph/health-insurance-philippines-guide.webp"
-              alt="Patient having a consultation with a healthcare professional"
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-brand-dark/30 to-transparent" />
+        <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
+          <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
+            {/* Section introduction */}
+            <div className="lg:sticky lg:top-28 lg:self-start">
+              <SectionLabel>Features</SectionLabel>
 
-            <div className="absolute bottom-4 left-4 right-4 max-w-xs rounded-2xl border border-white/70 bg-white/95 p-4 shadow-xl backdrop-blur">
-              <div className="flex items-center gap-2">
-                <CalendarCheck size={19} className="text-brand" />
-                <p className="font-bold text-brand-dark">
-                  Book an appointment
-                </p>
-              </div>
-              <div className="mt-4 space-y-2">
-                {["Choose a service", "Select a date", "Pick a time"].map(
-                  (item) => (
-                    <div
-                      key={item}
-                      className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-500"
-                    >
-                      {item}
-                      <ChevronRight size={14} />
-                    </div>
-                  ),
-                )}
-                <div className="rounded-lg bg-brand px-3 py-2.5 text-center text-xs font-semibold text-white">
-                  Request appointment
-                </div>
-              </div>
+              <h2 className="mt-5 text-3xl font-bold tracking-tight text-brand-dark sm:text-4xl">
+                Everything your clinic needs to stay organized.
+              </h2>
+
+              <p className="mt-5 leading-7 text-slate-600">
+                From appointment requests to managing doctors and branches,
+                Medora brings your clinic's daily operations into one simple
+                workspace.
+              </p>
+
+              <Link
+                href="/signup"
+                className="mt-8 inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-dark"
+              >
+                Get started <ArrowRight size={16} />
+              </Link>
             </div>
-          </div>
 
-          <div>
-            <SectionLabel>For your patients</SectionLabel>
-            <h2 className="mt-5 text-3xl font-bold tracking-tight text-brand-dark sm:text-4xl">
-              An easier way to book appointments.
-            </h2>
-            <p className="mt-5 leading-7 text-slate-600">
-              Give patients a convenient way to find your services, choose a
-              suitable time, and send an appointment request without the
-              back-and-forth.
-            </p>
-
-            <div className="mt-8 space-y-6">
+            {/* Feature grid */}
+            <div className="grid gap-4 sm:grid-cols-2">
               {[
                 {
-                  icon: CalendarDays,
-                  title: "Your own booking page",
+                  icon: LayoutDashboard,
+                  title: "Clinic dashboard",
                   description:
-                    "Share a simple, professional page for your clinic.",
+                    "Get an overview of appointments and your clinic's activity.",
+                },
+                {
+                  icon: CalendarCheck,
+                  title: "Appointment management",
+                  description:
+                    "Review requests, approve or decline bookings, and manage appointments.",
+                },
+                {
+                  icon: Building2,
+                  title: "Multi-branch management",
+                  description:
+                    "Organize clinic locations and manage each branch in one place.",
+                },
+                {
+                  icon: Stethoscope,
+                  title: "Doctor management",
+                  description:
+                    "Manage doctor profiles, availability, and working schedules.",
                 },
                 {
                   icon: ClipboardList,
-                  title: "Easy service selection",
+                  title: "Service management",
                   description:
-                    "Let patients choose the service they need.",
+                    "Configure your clinic's services and appointment durations.",
                 },
                 {
-                  icon: Clock3,
-                  title: "Availability-based booking",
+                  icon: Globe,
+                  title: "Online booking page",
                   description:
-                    "Show available slots based on clinic and doctor schedules.",
+                    "Give patients a convenient way to request appointments online.",
+                },
+                {
+                  icon: Bell,
+                  title: "Email notifications",
+                  description:
+                    "Keep patients informed about booking confirmations and updates.",
+                },
+                {
+                  icon: Users,
+                  title: "Staff management",
+                  description:
+                    "Organize your clinic team and manage staff access.",
                 },
               ].map(({ icon: Icon, title, description }) => (
-                <div key={title} className="flex gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-light text-brand">
-                    <Icon size={22} />
+                <div
+                  key={title}
+                  className="rounded-2xl border border-slate-200/80 bg-white p-5 transition duration-200 hover:-translate-y-1 hover:border-brand/30 hover:shadow-lg hover:shadow-brand/5 sm:p-6"
+                >
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-light text-brand">
+                    <Icon size={21} strokeWidth={1.8} />
                   </div>
-                  <div>
-                    <h3 className="font-bold text-brand-dark">{title}</h3>
-                    <p className="mt-1 text-sm leading-6 text-slate-600">
-                      {description}
-                    </p>
-                  </div>
+
+                  <h3 className="mt-4 font-bold text-brand-dark">
+                    {title}
+                  </h3>
+
+                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                    {description}
+                  </p>
                 </div>
               ))}
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Clinic team and dashboard */}
-      <section id="clinics" className="scroll-mt-24 bg-white py-20 sm:py-24">
-        <div className="mx-auto grid max-w-7xl items-center gap-12 px-5 sm:px-8 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16 lg:px-10">
-          <div>
-            <SectionLabel>For your team</SectionLabel>
-            <h2 className="mt-5 text-3xl font-bold tracking-tight text-brand-dark sm:text-4xl">
-              Everything you need in one place.
-            </h2>
-            <p className="mt-5 leading-7 text-slate-600">
-              Give your staff a clear overview of appointments, doctors,
-              branches, and schedules with one easy-to-use workspace.
-            </p>
-
-            <div className="mt-8 space-y-5">
-              {features.map(({ icon: Icon, title, description }) => (
-                <div key={title} className="flex gap-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-light text-brand">
-                    <Icon size={21} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-brand-dark">{title}</h3>
-                    <p className="mt-1 text-sm leading-6 text-slate-600">
-                      {description}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <DashboardPreview />
         </div>
       </section>
 
@@ -852,6 +836,40 @@ export default function Home() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Clinic team and dashboard */}
+      <section id="clinics" className="scroll-mt-24 bg-white py-20 sm:py-24">
+        <div className="mx-auto grid max-w-7xl items-center gap-12 px-5 sm:px-8 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16 lg:px-10">
+          <div>
+            <SectionLabel>For your team</SectionLabel>
+            <h2 className="mt-5 text-3xl font-bold tracking-tight text-brand-dark sm:text-4xl">
+              Everything you need in one place.
+            </h2>
+            <p className="mt-5 leading-7 text-slate-600">
+              Give your staff a clear overview of appointments, doctors,
+              branches, and schedules with one easy-to-use workspace.
+            </p>
+
+            <div className="mt-8 space-y-5">
+              {features.map(({ icon: Icon, title, description }) => (
+                <div key={title} className="flex gap-4">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-light text-brand">
+                    <Icon size={21} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-brand-dark">{title}</h3>
+                    <p className="mt-1 text-sm leading-6 text-slate-600">
+                      {description}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <DashboardPreview />
         </div>
       </section>
 
