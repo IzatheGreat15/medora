@@ -99,7 +99,6 @@ function EditBranchForm() {
       <div className="mx-auto max-w-4xl rounded-2xl border border-slate-200 bg-white p-8 text-center">
         <Building2 className="mx-auto h-8 w-8 text-slate-400" />
         <h2 className="mt-3 text-xl font-bold text-[#173F35]">Branch not found</h2>
-        <p className="mt-1 text-sm text-slate-500">This branch isn't in the current sample data.</p>
         <button onClick={() => router.push("/branches")} className="mt-5 rounded-xl bg-[#176B55] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#125744]">Back to branches</button>
       </div>
     );

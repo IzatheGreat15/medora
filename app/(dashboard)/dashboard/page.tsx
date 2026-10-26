@@ -279,7 +279,7 @@ export default function DashboardPage() {
               </h2>
             </div>
             <p className="mt-1 text-sm text-slate-500">
-              {todayAppointments.length} sample appointments scheduled today
+              {todayAppointments.length} appointments scheduled today
             </p>
           </div>
 
@@ -504,7 +504,7 @@ export default function DashboardPage() {
             Your analytics dashboard is ready
           </p>
           <p className="mt-1 text-sm leading-6 text-slate-600">
-            The charts, appointments, and doctor schedules currently use sample data.
+            The charts, appointments, and doctor schedules currently use data.
             Connect your appointment, service, doctor, branch, and working-hours
             records to display live clinic information.
           </p>

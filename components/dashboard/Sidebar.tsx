@@ -49,11 +49,11 @@ const bottomNavigation = [
     href: "/settings",
     icon: Settings,
   },
-  // {
-  //   label: "Help & support",
-  //   href: "/support",
-  //   icon: HelpCircle,
-  // },
+  {
+    label: "Help & support",
+    href: "/help",
+    icon: HelpCircle,
+  },
 ];
 
 type DashboardSidebarProps = {
@@ -95,7 +95,7 @@ export default function DashboardSidebar({
           className="flex items-center gap-3 overflow-hidden"
         >
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-[#176B55]">
-            <img src="/logo.png" />
+            <img src="/logo.webp" />
           </span>
 
           {!collapsed && (

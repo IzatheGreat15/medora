@@ -1121,8 +1121,6 @@ function EditDoctorForm() {
       {/* Form actions */}
       <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs text-slate-400">
-          Changes are local to this demo until database persistence is
-          connected.
         </p>
 
         <div className="flex justify-end gap-3">

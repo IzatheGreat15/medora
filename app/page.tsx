@@ -150,7 +150,7 @@ function Logo() {
       className="flex items-center gap-2 text-2xl font-extrabold tracking-tight text-brand-dark"
       aria-label="Medora home"
     >
-      <img src="/full-logo.png" className="w-36" />
+      <img src="/full-logo.webp" className="w-36" />
     </Link>
   );
 }

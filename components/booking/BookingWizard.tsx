@@ -140,7 +140,7 @@ export default function BookingWizard() {
       <div className="mx-auto w-full max-w-7xl overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm sm:rounded-3xl">
         <header className="flex flex-col gap-3 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <a href="/" className="flex w-fit items-center gap-2.5 rounded-lg text-lg font-bold tracking-tight text-[#173F35] focus:outline-none focus:ring-2 focus:ring-[#176B55] focus:ring-offset-2">
-            <img src="/full-logo.png" className="w-36" />
+            <img src="/full-logo.webp" className="w-36" />
           </a>
         </header>
 
@@ -220,7 +220,7 @@ export default function BookingWizard() {
         </div>
 
         <footer className="border-t border-slate-100 px-5 py-4 text-center text-xs text-slate-400 flex gap-2 w-full justify-center">
-          Appointment booking made simple · Powered by <img src="/full-logo.png" className="w-16" />
+          Appointment booking made simple · Powered by <img src="/full-logo.webp" className="w-16" />
         </footer>
       </div>
     </main>
