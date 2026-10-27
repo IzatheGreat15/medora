@@ -162,7 +162,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6">
+    <div className="mx-auto w-full space-y-6">
       {/* Page heading */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -447,8 +447,7 @@ export default function SettingsPage() {
             <MessageSquare size={16} className="mt-0.5 shrink-0" />
             <p>
               SMS notifications are planned for a future release. Email
-              preferences can be configured here, but actual delivery
-              requires an email provider and notification backend.
+              preferences can be configured here.
             </p>
           </div>
         </div>
@@ -554,6 +553,9 @@ export default function SettingsPage() {
           </div>
         </div>
       </section>
+
+      {/* Staff section is maintained as a separate component */}
+      <StaffSection />
     </div>
   );
 }

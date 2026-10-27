@@ -455,7 +455,7 @@ export default function StaffSection() {
       {/* Add / Edit staff modal */}
       {isModalOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto mb-0 bg-black/40 p-4"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) {
               closeModal();
@@ -545,7 +545,7 @@ export default function StaffSection() {
                   />
                   <p>
                     All active staff members have full access to clinic
-                    features in Phase 1.
+                    features.
                   </p>
                 </div>
 

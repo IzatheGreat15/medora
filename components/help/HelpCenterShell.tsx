@@ -84,10 +84,10 @@ const sections = [
                 title: "Settings",
                 icon: Settings,
                 children: [
-                    { title: "Clinic settings", href: "/help/settings" },
+                    { title: "Clinic settings", href: "/help/settings/clinic-settings" },
                     { title: "Notifications", href: "/help/settings/notifications" },
                     { title: "Staff", href: "/help/settings/staff" },
-                    { title: "Subscription Plan", href: "/help/settings/plan" },
+                    { title: "Subscription Plan", href: "/help/settings/subscription-plan" },
 
                 ],
             },

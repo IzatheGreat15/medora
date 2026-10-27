@@ -1005,4 +1005,300 @@ export const helpArticles: HelpArticleData[] = [
             },
         ],
     },
+
+    {
+        slug: "settings/clinic-settings",
+        title: "Manage clinic settings",
+        description:
+            "Learn how to update your clinic name and logo, configure clinic information, and customize the details patients see when interacting with your clinic.",
+        category: "Settings",
+        readTime: "4 min read",
+        overviewTitle: "Keep your clinic information up to date",
+        overview:
+            "The Clinic settings section lets you customize your clinic's identity in Medora. You can upload a clinic logo and update your clinic name. Keeping this information accurate helps patients recognize your clinic on the online booking page and in patient notifications.",
+        steps: [
+            {
+                title: "Open Clinic settings",
+                description:
+                    "Select Settings from the sidebar. Review the available options for managing your clinic's information and appearance.",
+                image: "/images/help/settings/open-clinic-settings.webp",
+                imageAlt:
+                    "Settings page showing the clinic information section",
+            },
+            {
+                title: "Upload your clinic logo",
+                description:
+                    "In the Clinic logo section, select Upload logo and choose an image from your device. Medora supports PNG, JPG, and WebP images with a maximum file size of 2 MB. Use a clear, recognizable logo that represents your clinic.",
+            },
+            {
+                title: "Update your clinic name",
+                description:
+                    "Enter your preferred clinic name in the Clinic name field. For example, you might use Medora Family Clinic. This name identifies your clinic throughout Medora, so use the name patients will recognize.",
+            },
+            {
+                title: "Save your changes",
+                description:
+                    "After updating your logo or clinic name, select Save changes. Review the page to confirm that your updated information appears as expected. If you leave the page without saving, your changes may not be retained.",
+            },
+        ],
+        relatedGuides: [
+            {
+                title: "Configure notification settings",
+                description:
+                    "Choose which appointment email notifications patients receive.",
+                href: "/help/settings/notifications",
+            },
+            {
+                title: "Manage staff members",
+                description:
+                    "Review and manage staff members who can access your clinic.",
+                href: "/help/settings/staff",
+            },
+            {
+                title: "View your subscription plan",
+                description:
+                    "Review your plan, usage limits, and upcoming billing date.",
+                href: "/help/settings/subscription-plan",
+            },
+        ],
+    },
+    {
+        slug: "settings/notifications",
+        title: "Configure notification settings",
+        description:
+            "Learn how to manage patient email notifications for received, confirmed, cancelled, and rescheduled bookings, as well as appointment reminders.",
+        category: "Settings",
+        readTime: "5 min read",
+        overviewTitle: "Keep patients informed about their appointments",
+        overview:
+            "The Notification settings section lets you control which appointment-related email notifications are enabled for your clinic. You can configure notifications for booking requests, booking confirmations, cancellations, rescheduling, and appointment reminders. SMS notifications are marked as coming soon in the current interface.",
+        steps: [
+            {
+                title: "Open Notification settings",
+                description:
+                    "Select Settings from the sidebar, then choose Notifications. Find the Notification settings section to review the available appointment events and their email preferences.",
+                image: "/images/help/settings/open-notifications.webp",
+                imageAlt:
+                    "Notification settings section in the clinic settings page",
+            },
+            {
+                title: "Configure booking received notifications",
+                description:
+                    "Find Booking received to manage email notifications sent when a patient's booking request is received. Enable this option when you want patients to receive an email acknowledging that their request has been submitted.",
+            },
+            {
+                title: "Configure booking confirmed notifications",
+                description:
+                    "Find Booking confirmed to manage emails sent when an appointment is approved. Keeping this notification enabled helps patients know when their appointment has been confirmed by the clinic.",
+            },
+            {
+                title: "Enable appointment reminders",
+                description:
+                    "Find Appointment reminder and use its email toggle to enable or disable reminder notifications. Reminders can help patients remember their upcoming appointments.",
+            },
+            {
+                title: "Choose when reminders are sent",
+                description:
+                    "When configuring appointment reminders, use the Send reminder dropdown to choose how far in advance the email should be sent. For example, selecting 1 day before schedules the reminder for the day before the appointment, subject to the notification system's configured behavior.",
+                image: "/images/help/settings/reminder-timing.webp",
+                imageAlt:
+                    "Send reminder dropdown with the 1 day before option selected",
+            },
+            {
+                title: "Save your notification preferences",
+                description:
+                    "After reviewing your email toggles and reminder timing, select Save changes. Check that your selected preferences remain displayed after saving.",
+            },
+        ],
+        relatedGuides: [
+            {
+                title: "Manage clinic settings",
+                description:
+                    "Update your clinic name and upload your clinic logo.",
+                href: "/help/settings/clinic-settings",
+            },
+            {
+                title: "Manage bookings",
+                description:
+                    "Review appointment requests and manage their status.",
+                href: "/help/bookings/manage-bookings",
+            },
+            {
+                title: "Manage staff members",
+                description:
+                    "Review the staff accounts that can access your clinic.",
+                href: "/help/settings/staff",
+            },
+        ],
+    },
+    {
+        slug: "settings/staff",
+        title: "Manage staff members",
+        description:
+            "Learn how to view, search, add, edit, deactivate, and remove staff members who have access to your clinic workspace.",
+        category: "Settings",
+        readTime: "6 min read",
+        overviewTitle: "Manage who can access your clinic",
+        overview:
+            "The Staff members section lets you review the people registered to access your clinic workspace. You can search for staff, filter the list by status, review access information, and use the available actions to manage staff records. The current interface indicates that active staff members have full access to clinic features, with role-based permissions planned for a future phase.",
+        steps: [
+            {
+                title: "Open the Staff section",
+                description:
+                    "Select Settings from the sidebar, scroll down to view the Staff section. In the Staff members section, review the list of staff accounts registered for your clinic.",
+                image: "/images/help/settings/open-staff.webp",
+                imageAlt:
+                    "Staff members section showing the staff table and Add staff button",
+            },
+            {
+                title: "Search for a staff member",
+                description:
+                    "Use the search field above the staff table to locate a staff member by their identifying information, such as their name or email address. Use the status filter to narrow the list when you need to find active or inactive staff accounts.",
+                image: "/images/help/settings/search-staff.webp",
+                imageAlt:
+                    "Staff search field and status filter",
+            },
+            {
+                title: "Review staff access and status",
+                description:
+                    "The staff table displays each person's name, email address, access level, account status, and available actions. Active staff members are currently shown with Full access.",
+                image: "/images/help/settings/staff-list.webp",
+                imageAlt:
+                    "Staff table showing names, email addresses, access levels, statuses, and actions",
+            },
+            {
+                title: "Add a staff member",
+                description:
+                    "Select Add staff to begin adding a staff member. Follow the form to enter the requested information and save the staff record. Confirm the person's details before saving. If your implementation uses email invitations, follow the invitation process so the staff member can securely establish their own login credentials.",
+                image: "/images/help/settings/add-staff.webp",
+                imageAlt:
+                    "Add staff button and staff creation interface",
+            },
+            {
+                title: "Edit staff information",
+                description:
+                    "Select the pencil icon in the Actions column beside the staff member you want to update. Review the available fields, make the necessary changes, and save them. Confirm that you selected the correct staff member before updating their information.",
+                image: "/images/help/settings/edit-staff.webp",
+                imageAlt:
+                    "Edit action beside a staff member in the staff table",
+            },
+            {
+                title: "Change a staff member's status",
+                description:
+                    "Use the available status-management action to change a staff member's status when they should no longer be active in the clinic workspace. Review the confirmation prompt, if displayed, before proceeding. Verify the updated status in the staff table afterward.",
+                image: "/images/help/settings/change-staff-status.webp",
+                imageAlt:
+                    "Staff status management action in the staff table",
+            },
+            {
+                title: "Delete a staff member",
+                description:
+                    "Select the trash icon beside the staff member you want to remove. Confirm that you selected the correct record and review any confirmation prompt before proceeding. If you only need to prevent someone from accessing the workspace temporarily, consider deactivation instead, if supported.",
+                image: "/images/help/settings/delete-staff.webp",
+                imageAlt:
+                    "Delete action beside a staff member in the staff table",
+            },
+        ],
+        relatedGuides: [
+            {
+                title: "Manage clinic settings",
+                description:
+                    "Update your clinic's name and logo.",
+                href: "/help/settings/clinic-settings",
+            },
+            {
+                title: "Configure notification settings",
+                description:
+                    "Manage appointment-related email notifications.",
+                href: "/help/settings/notifications",
+            },
+            {
+                title: "View your subscription plan",
+                description:
+                    "Review plan limits and upcoming billing information.",
+                href: "/help/settings/subscription-plan",
+            },
+        ],
+    },
+    {
+        slug: "settings/subscription-plan",
+        title: "View your subscription plan",
+        description:
+            "Learn how to review your clinic's current Medora plan, doctor and branch limits, billing date, billing status, and how to request a plan change.",
+        category: "Settings",
+        readTime: "4 min read",
+        overviewTitle: "Understand your clinic's subscription",
+        overview:
+            "The Subscription plan section displays your clinic's current Medora plan and key subscription details. You can review the monthly price, included doctor and branch limits, next billing date, and billing status. If you need a different plan, you can submit a plan change request to the Medora team.",
+        steps: [
+            {
+                title: "Open Subscription plan",
+                description:
+                    "Select Settings from the sidebar. Scroll to the Subscription plan section to review the plan currently associated with your clinic.",
+                image: "/images/help/settings/open-subscription-plan.webp",
+                imageAlt:
+                    "Subscription plan section within clinic settings",
+            },
+            {
+                title: "Review your current plan and monthly price",
+                description:
+                    "The Current plan card displays your plan name, a short description, and the monthly subscription price. For example, the screenshot shows the Professional plan at ₱1,999 per month. Your actual plan and price may differ depending on your clinic's subscription.",
+                image: "/images/help/settings/current-subscription-plan.webp",
+                imageAlt:
+                    "Current plan card showing the Professional plan and monthly price",
+            },
+            {
+                title: "Check doctor and branch limits",
+                description:
+                    "Review the Doctor limit and Branch limit fields to understand how many doctors and clinic locations are included in your plan. For example, the Professional plan shown in the screenshot supports up to 3 doctors and 1 branch. Keep these limits in mind when expanding your clinic.",
+                image: "/images/help/settings/subscription-limits.webp",
+                imageAlt:
+                    "Subscription details showing doctor and branch limits",
+            },
+            {
+                title: "Review the next billing date",
+                description:
+                    "The Next billing date field shows the upcoming billing date and may also indicate how many days remain. Use this information to plan for your upcoming subscription payment.",
+                image: "/images/help/settings/next-billing-date.webp",
+                imageAlt:
+                    "Next billing date and remaining days in the subscription plan section",
+            },
+            {
+                title: "Understand your billing status",
+                description:
+                    "The Billing status field indicates the current state of your subscription payments. For example, the screenshot displays Up to date and indicates that no overdue payment has been recorded. Review this status regularly so you can follow up on any billing issues.",
+                image: "/images/help/settings/billing-status.webp",
+                imageAlt:
+                    "Billing status showing that the subscription is up to date",
+            },
+            {
+                title: "Request a plan change",
+                description:
+                        "If your current plan no longer meets your clinic's needs, please contact Medora Support for assistance with changing your subscription plan. Our team will guide you through the available options and help you find a plan that suits your clinic.",
+                image: "/images/help/settings/request-plan-change.webp",
+                imageAlt:
+                    "Request plan change button in the Subscription plan section",
+            },
+        ],
+        relatedGuides: [
+            {
+                title: "Manage clinic settings",
+                description:
+                    "Update your clinic name and logo.",
+                href: "/help/settings/clinic-settings",
+            },
+            {
+                title: "Manage staff members",
+                description:
+                    "Review and manage clinic staff access.",
+                href: "/help/settings/staff",
+            },
+            {
+                title: "Configure notification settings",
+                description:
+                    "Manage patient email notifications and reminders.",
+                href: "/help/settings/notifications",
+            },
+        ],
+    },
 ];
