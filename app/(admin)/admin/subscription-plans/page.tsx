@@ -160,19 +160,6 @@ export default function SubscriptionPlansPage() {
 
     return (
         <div className="space-y-6">
-            {/* Page heading */}
-            <div>
-                <p className="text-sm font-medium text-[#176B55]">
-                    Platform management
-                </p>
-                <h2 className="mt-1 text-3xl font-bold tracking-tight text-[#173F35]">
-                    Subscription Plans
-                </h2>
-                <p className="mt-2 text-sm text-slate-500">
-                    Manage your pricing, doctor limits, and branch limits.
-                </p>
-            </div>
-
             {/* Plans table */}
             <div className="overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-sm">
                 <div className="flex flex-col gap-4 border-b border-slate-100 p-5 py-3 sm:flex-row sm:items-center sm:justify-between">
