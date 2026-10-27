@@ -562,10 +562,12 @@ export default function Home() {
 
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
-                href="/signup"
+                href="https://forms.gle/vG84rE2R7oKT7DBu6"
+                target="_blank"
                 className="inline-flex items-center gap-2 rounded-xl bg-[#176B55] px-6 py-4 font-semibold text-white shadow-lg shadow-[#176B55]/20 transition hover:-translate-y-0.5 hover:bg-[#173F35]"
               >
-                Simplify appointment booking <ArrowRight size={18} />
+                {/* Simplify appointment booking <ArrowRight size={18} /> */}
+                Join the Pilot Program <ArrowRight size={18} />
               </Link>
 
               <Link
@@ -956,7 +958,7 @@ export default function Home() {
           <p className="mt-6 text-center text-sm text-slate-500">
             Need a custom setup?{" "}
             <a
-              href="mailto:hello@medora.ph"
+              href="mailto:meitanteistudios@gmail.com"
               className="font-semibold text-brand underline underline-offset-4"
             >
               Talk to our team.
@@ -1044,7 +1046,7 @@ export default function Home() {
             <Link href="#how-it-works" className="hover:text-brand">
               How it works
             </Link>
-            <a href="mailto:hello@medora.ph" className="hover:text-brand">
+            <a href="mailto:meitanteistudios@gmail.com" className="hover:text-brand">
               Contact
             </a>
           </div>

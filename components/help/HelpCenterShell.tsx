@@ -291,7 +291,7 @@ export default function HelpCenterShell({
                             Guides for your clinic workspace
                         </p>
                         <a
-                            href="mailto:support@medora.app"
+                            href="mailto:meitanteistudios@gmail.com"
                             className="mt-3 inline-flex text-xs font-medium text-[#D4E8DE] hover:text-white hover:underline"
                         >
                             Contact support
