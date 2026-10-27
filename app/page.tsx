@@ -561,14 +561,14 @@ export default function Home() {
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link
+              <a
                 href="https://forms.gle/vG84rE2R7oKT7DBu6"
                 target="_blank"
                 className="inline-flex items-center gap-2 rounded-xl bg-[#176B55] px-6 py-4 font-semibold text-white shadow-lg shadow-[#176B55]/20 transition hover:-translate-y-0.5 hover:bg-[#173F35]"
               >
                 {/* Simplify appointment booking <ArrowRight size={18} /> */}
                 Join the Pilot Program <ArrowRight size={18} />
-              </Link>
+              </a>
 
               <Link
                 href="#problem"
