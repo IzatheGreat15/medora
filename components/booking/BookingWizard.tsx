@@ -113,8 +113,7 @@ export default function BookingWizard() {
             Your booking details are ready
           </h1>
           <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-slate-500 sm:text-base">
-            This is a UI prototype. No appointment has been sent to a clinic yet.
-            Connect the final action to your backend before using this with patients.
+            Thank you for trusting us with your health and well-being! We look forward to welcoming you and providing you with the care you deserve.
           </p>
           <div className="mt-7 space-y-1 rounded-2xl border border-slate-100 bg-[#F7F9F6] p-5 text-left">
             <p className="font-semibold text-slate-900">{service?.name}</p>

@@ -424,7 +424,7 @@ export default function DoctorsPage() {
     }
 
     return (
-        <div className="mx-auto max-w-7xl space-y-7 pb-10">
+        <div className="mx-auto space-y-7 pb-10">
             {/* Summary metrics */}
             <section
                 aria-label="Doctor statistics"

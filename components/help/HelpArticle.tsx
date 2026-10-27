@@ -61,7 +61,7 @@ export default function HelpArticle({
           {article.title}
         </h1>
 
-        <p className="mt-4 max-w-2xl text-base leading-7 text-[#53645D]">
+        <p className="mt-4 text-base leading-7 text-[#53645D]">
           {article.description}
         </p>
 

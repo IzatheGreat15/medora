@@ -161,7 +161,7 @@ export default function BranchesPage() {
     }
 
     return (
-        <div className="mx-auto max-w-7xl space-y-6">
+        <div className="mx-auto space-y-6">
             {actionMessage && (
                 <div
                     role="status"

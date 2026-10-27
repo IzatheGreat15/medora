@@ -66,7 +66,7 @@ export default function EditBranchPage() {
   return (
     <Suspense
       fallback={
-        <div className="mx-auto max-w-7xl animate-pulse space-y-6 pb-10">
+        <div className="mx-auto animate-pulse space-y-6 pb-10">
           <div className="h-8 w-48 rounded-lg bg-slate-200" />
           <div className="grid gap-6 md:grid-cols-2">
             <div className="h-80 rounded-2xl bg-white" />
@@ -144,7 +144,7 @@ function EditBranchForm() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 pb-10">
+    <div className="mx-auto space-y-6 pb-10">
       {savedMessage && <div role="status" className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800"><Check className="h-4 w-4" />{savedMessage}</div>}
 
       <form id="branch-edit-form" onSubmit={handleSave} className="space-y-6 flex flex-col md:flex-row gap-6">

@@ -267,7 +267,7 @@ function Field({
 function LoadingDoctorForm() {
   return (
     <div
-      className="mx-auto max-w-7xl animate-pulse space-y-6 pb-10"
+      className="mx-auto animate-pulse space-y-6 pb-10"
       aria-label="Loading doctor details"
     >
       <div className="h-5 w-32 rounded bg-slate-200" />
@@ -546,7 +546,7 @@ function EditDoctorForm() {
   return (
     <form
       onSubmit={handleSave}
-      className="mx-auto max-w-7xl space-y-6 pb-10"
+      className="mx-auto space-y-6 pb-10"
     >
       {savedMessage && (
         <div

@@ -891,4 +891,118 @@ export const helpArticles: HelpArticleData[] = [
             },
         ],
     },
+
+    {
+        slug: "online-booking",
+        title: "How to book an appointment online",
+        description:
+            "Learn how patients can book an appointment through your clinic's online booking page, from selecting a branch and service to reviewing and submitting their appointment details.",
+        category: "Online booking",
+        readTime: "8 min read",
+        overviewTitle: "Make it easy for patients to book appointments",
+        overview:
+            "Medora's online booking page guides patients through a step-by-step appointment process without requiring them to create an account. Patients select a clinic branch, choose a service and doctor, pick an available date and time, enter their details, and review their booking before submitting it. The booking summary helps patients check their selections throughout the process.",
+        steps: [
+            {
+                title: "Choose a clinic branch",
+                description:
+                    "The booking process begins with the Choose a branch page. Patients can review the available clinic locations, including their addresses and opening hours, before selecting the branch that is most convenient for them. Additional information, such as parking and accessibility, may also be displayed. Select a branch to continue to the next step.",
+                image: "/images/help/online-booking/choose-branch.webp",
+                imageAlt:
+                    "Online booking page showing branch cards with addresses, opening hours, and available facilities",
+            },
+            {
+                title: "Select a service",
+                description:
+                    "After choosing a branch, patients select the service they want to book, such as General Consultation or Follow-up Consultation. Each service may display its description, duration, and price so patients understand what they are booking. The available options depend on the services configured for the selected branch. Choose the appropriate service to continue.",
+                image: "/images/help/online-booking/choose-service.webp",
+                imageAlt:
+                    "Online booking step displaying available clinic services",
+            },
+            {
+                title: "Choose a doctor",
+                description:
+                    "Patients can select a doctor who provides the chosen service at the selected branch. Review the doctor's name and specialty before making a selection. The available doctors depend on the branch assignments, service assignments, and schedules configured by the clinic. Select a doctor to proceed.",
+                image: "/images/help/online-booking/choose-doctor.webp",
+                imageAlt:
+                    "Online booking step displaying doctors available for the selected service and branch",
+            },
+            {
+                title: "Select a date and time",
+                description:
+                    "Patients choose a preferred appointment date and an available time slot. Availability is based on the doctor's configured working hours, the selected service's duration, and existing scheduling commitments. For example, if a doctor offers General Consultation appointments lasting 30 minutes, the available slots must accommodate that appointment duration. Select an available slot that fits the patient's schedule.",
+                image: "/images/help/online-booking/choose-date-time.webp",
+                imageAlt:
+                    "Appointment calendar and available time slots for the selected doctor",
+            },
+            {
+                title: "Enter patient details",
+                description:
+                    "Patients provide the required contact information so the clinic can identify them and communicate about the appointment. Enter the requested details accurately, especially the patient's name, email address, and phone number when those fields are required. No account is required according to the booking page instructions, so patients can provide their details directly without signing up.",
+                image: "/images/help/online-booking/patient-details.webp",
+                imageAlt:
+                    "Online booking form for entering patient contact information",
+            },
+            {
+                title: "Review the appointment details",
+                description:
+                    "Before submitting the booking, patients review their selections to make sure everything is correct. Check the selected branch, service, doctor, appointment date and time, and patient details. The booking summary on the right side of the page displays the current selections as patients move through the steps. Review the information carefully before proceeding.",
+                image: "/images/help/online-booking/review-booking.webp",
+                imageAlt:
+                    "Appointment review page showing the selected branch, service, doctor, date, time, and patient details",
+            },
+            {
+                title: "Submit the booking request",
+                description:
+                    "After reviewing the appointment details, submit the booking using the final action displayed on the page. Follow any confirmation message shown after submission. Depending on your clinic's booking workflow, the appointment may require staff approval before it is confirmed. Patients should follow any instructions provided by the clinic after submitting their request.",
+                image: "/images/help/online-booking/booking-confirmation.webp",
+                imageAlt:
+                    "Online booking confirmation screen after submitting an appointment request",
+            },
+        ],
+        relatedGuides: [
+            {
+                title: "Manage branches",
+                description:
+                    "Maintain clinic locations and their contact information.",
+                href: "/help/branches/manage-branches",
+            },
+            {
+                title: "Edit branch details and opening hours",
+                description:
+                    "Configure when each clinic location is open to patients.",
+                href: "/help/branches/edit-a-branch",
+            },
+            {
+                title: "Manage doctors",
+                description:
+                    "Maintain doctor profiles and branch assignments.",
+                href: "/help/doctors/manage-doctors",
+            },
+            {
+                title: "Edit doctor information",
+                description:
+                    "Update doctor profiles, working hours, and service assignments.",
+                href: "/help/doctors/edit-doctor",
+            },
+            {
+                title: "Manage services",
+                description:
+                    "Configure clinic services, default durations, and prices.",
+                href: "/help/services/manage-services",
+            },
+            {
+                title: "Add a service",
+                description:
+                    "Create a service that patients can select when booking.",
+                href: "/help/services/add-service",
+            },
+            {
+                title: "Manage bookings",
+                description:
+                    "Review and manage appointment requests in your clinic dashboard.",
+                href: "/help/bookings/manage-bookings",
+            },
+        ],
+    },
 ];
