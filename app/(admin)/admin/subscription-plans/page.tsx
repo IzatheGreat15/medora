@@ -18,7 +18,8 @@ type SubscriptionPlan = {
     price: number;
     maxDoctors: number;
     maxBranches: number;
-    description: string[];
+    description: string;
+    features: string[];
     isActive: boolean;
 };
 
@@ -29,7 +30,8 @@ const emptyForm: PlanForm = {
     price: 0,
     maxDoctors: 1,
     maxBranches: 1,
-    description: [""],
+    description: "",
+    features: [""],
     isActive: true,
 };
 
@@ -40,7 +42,8 @@ const initialPlans: SubscriptionPlan[] = [
         price: 999,
         maxDoctors: 2,
         maxBranches: 1,
-        description: ["For small dental clinics getting started."],
+        description: "",
+        features: ["For small dental clinics getting started."],
         isActive: true,
     },
     {
@@ -49,7 +52,8 @@ const initialPlans: SubscriptionPlan[] = [
         price: 1999,
         maxDoctors: 5,
         maxBranches: 3,
-        description: ["For growing clinics with multiple doctors."],
+        description: "",
+        features: ["For growing clinics with multiple doctors."],
         isActive: true,
     },
     {
@@ -58,7 +62,8 @@ const initialPlans: SubscriptionPlan[] = [
         price: 3499,
         maxDoctors: 10,
         maxBranches: 5,
-        description: ["For established multi-branch clinics."],
+        description: "",
+        features: ["For established multi-branch clinics."],
         isActive: true,
     },
 ];
@@ -104,6 +109,7 @@ export default function SubscriptionPlansPage() {
             maxDoctors: plan.maxDoctors,
             maxBranches: plan.maxBranches,
             description: plan.description,
+            features: plan.features,
             isActive: plan.isActive,
         });
         setModalOpen(true);
@@ -377,11 +383,11 @@ export default function SubscriptionPlansPage() {
 
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-slate-700">
-                                    Plan features / description
+                                    Plan features
                                 </label>
 
                                 <div className="space-y-2">
-                                    {form.description.map((item, index) => (
+                                    {form.features.map((item, index) => (
                                         <div key={index} className="flex items-center gap-2">
                                             <span className="text-slate-400">•</span>
 
@@ -390,9 +396,9 @@ export default function SubscriptionPlansPage() {
                                                 value={item}
                                                 maxLength={150}
                                                 onChange={(event) => {
-                                                    const updated = [...form.description];
+                                                    const updated = [...form.features];
                                                     updated[index] = event.target.value;
-                                                    updateField("description", updated);
+                                                    updateField("features", updated);
                                                 }}
                                                 placeholder={`Feature ${index + 1}`}
                                                 className="h-11 flex-1 rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-[#176B55] focus:ring-2 focus:ring-[#176B55]/10"
@@ -402,11 +408,11 @@ export default function SubscriptionPlansPage() {
                                                 type="button"
                                                 onClick={() => {
                                                     updateField(
-                                                        "description",
-                                                        form.description.filter((_, i) => i !== index)
+                                                        "features",
+                                                        form.features.filter((_, i) => i !== index)
                                                     );
                                                 }}
-                                                disabled={form.description.length === 1}
+                                                disabled={form.features.length === 1}
                                                 aria-label={`Remove feature ${index + 1}`}
                                                 className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-30"
                                             >
@@ -419,7 +425,7 @@ export default function SubscriptionPlansPage() {
                                 <button
                                     type="button"
                                     onClick={() => {
-                                        updateField("description", [...form.description, ""]);
+                                        updateField("features", [...form.features, ""]);
                                     }}
                                     className="inline-flex items-center gap-2 rounded-lg py-2 text-sm font-semibold text-[#176B55] hover:text-[#125642]"
                                 >
