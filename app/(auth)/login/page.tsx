@@ -1,3 +1,5 @@
+
+import { Suspense } from "react";
 import { signIn } from "./actions";
 
 const errorMessages: Record<string, string> = {
@@ -12,9 +14,22 @@ type LoginPageProps = {
   }>;
 };
 
-export default async function LoginPage({
-  searchParams,
-}: LoginPageProps) {
+function LoginFallback() {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-[#F5F8F5] px-4 py-12">
+      <div className="w-full max-w-md animate-pulse rounded-2xl border border-[#DDE8E1] bg-white p-8 shadow-sm">
+        <div className="mb-5 h-8 w-36 rounded bg-gray-200" />
+        <div className="mb-3 h-6 w-48 rounded bg-gray-200" />
+        <div className="mb-8 h-4 w-56 rounded bg-gray-100" />
+        <div className="mb-5 h-11 rounded-lg bg-gray-100" />
+        <div className="mb-5 h-11 rounded-lg bg-gray-100" />
+        <div className="h-12 rounded-lg bg-gray-200" />
+      </div>
+    </main>
+  );
+}
+
+async function LoginContent({ searchParams }: LoginPageProps) {
   const { error } = await searchParams;
   const errorMessage = error ? errorMessages[error] : undefined;
 
@@ -23,14 +38,14 @@ export default async function LoginPage({
       className="flex min-h-screen items-center justify-center bg-cover bg-center bg-no-repeat px-4 py-12"
       style={{
         backgroundImage: `
-      linear-gradient(
-        135deg,
-        rgba(23, 63, 53, 0.88) 0%,
-        rgba(23, 107, 85, 0.72) 45%,
-        rgba(255, 255, 255, 0.42) 100%
-      ),
-      url('https://images.unsplash.com/photo-1777269749032-d8d458ae594d?q=80&w=1074&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D')
-    `,
+          linear-gradient(
+            135deg,
+            rgba(23, 63, 53, 0.88) 0%,
+            rgba(23, 107, 85, 0.72) 45%,
+            rgba(255, 255, 255, 0.42) 100%
+          ),
+          url('https://images.unsplash.com/photo-1777269749032-d8d458ae594d?q=80&w=1074&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxM3A3fDA%3D')
+        `,
       }}
     >
       <div className="w-full max-w-md rounded-2xl border border-[#DDE8E1] bg-white p-8 shadow-sm">
@@ -111,5 +126,13 @@ export default async function LoginPage({
         </p>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage({ searchParams }: LoginPageProps) {
+  return (
+    <Suspense fallback={<LoginFallback />}>
+      <LoginContent searchParams={searchParams} />
+    </Suspense>
   );
 }
