@@ -13,6 +13,7 @@ export type DashboardStaff = {
   role: "clinic_user";
   clinic_role: "owner" | "manager" | "staff";
   clinic_id: string;
+  clinic_name: string;
 };
 
 export default function DashboardLayoutClient({

@@ -4,6 +4,7 @@ import "server-only";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
+import { DashboardStaff } from "@/components/dashboard/DashboardLayoutClient";
 
 export async function getCurrentStaff() {
   const supabase = await createSupabaseServerClient();
@@ -28,14 +29,14 @@ export async function getCurrentStaff() {
   if (staffError || !staff) {
     console.error(
       "Failed to retrieve current staff:",
-      staffError?.message ?? "No staff record found"
+      staffError?.message ?? "No staff record found",
     );
 
     await supabase.auth.signOut();
     redirect("/login?error=unauthorized");
   }
 
-  // Validate that the staff record matches the expected role structure.
+  // Validate the staff record's role and clinic assignment.
   const validPlatformAdmin =
     staff.role === "platform_admin" &&
     staff.clinic_id === null &&
@@ -51,8 +52,41 @@ export async function getCurrentStaff() {
     redirect("/login?error=unauthorized");
   }
 
+  // Platform admins do not belong to a clinic.
+  let clinic: { id: string; name: string } | null = null;
+
+  if (validClinicUser) {
+    const { data, error: clinicError } = await admin
+      .from("clinics")
+      .select("id, name")
+      .eq("id", staff.clinic_id)
+      .maybeSingle();
+
+    if (clinicError || !data) {
+      console.error(
+        "Failed to retrieve clinic:",
+        clinicError?.message ?? "Clinic not found",
+      );
+
+      redirect("/login?error=unauthorized");
+    }
+
+    clinic = data;
+  }
+
+  // Attach the clinic information to the staff object.
+  const clinicStaff: DashboardStaff = {
+    id: staff.id,
+    first_name: staff.first_name,
+    last_name: staff.last_name,
+    role: "clinic_user",
+    clinic_role: staff.clinic_role as "owner" | "manager" | "staff",
+    clinic_id: staff.clinic_id,
+    clinic_name: clinic?.name ?? '',
+  };
+
   return {
     user,
-    staff,
+    staff: clinicStaff,
   };
 }

@@ -12,27 +12,9 @@ export async function requireClinicUser() {
     redirect("/admin");
   }
 
-  const admin = createSupabaseAdmin();
-
-  const { data: clinic, error: clinicError } = await admin
-    .from("clinics")
-    .select("id, name")
-    .eq("id", staff.clinic_id)
-    .maybeSingle();
-
-  if (clinicError || !clinic) {
-    console.error(
-      "Failed to retrieve clinic:",
-      clinicError?.message ?? "Clinic not found"
-    );
-
-    redirect("/login?error=unauthorized");
-  }
-
   return {
     user,
     staff,
-    clinicId: clinic.id,
-    clinicName: clinic.name,
+    clinicId: staff.clinic_id,
   };
 }
