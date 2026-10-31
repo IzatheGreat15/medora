@@ -483,13 +483,13 @@ export default function DashboardPage() {
       </div>
 
       {/* Appointment trends */}
-      <section className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+      <section className="grid grid-cols-2 gap-5">
         <AppointmentTrendsChart />
         <BookingStatusChart />
       </section>
 
       {/* Service and branch analytics */}
-      <section className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+      <section className="grid grid-cols-2 gap-5">
         <PopularServicesChart />
         <BranchPerformanceChart />
       </section>

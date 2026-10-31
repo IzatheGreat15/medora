@@ -15,6 +15,7 @@ import {
   CalendarDays,
   UserRound,
   Send,
+  LoaderCircle,
 } from "lucide-react";
 
 type ClinicStatus = "Trial" | "Active" | "Inactive" | "Past due";
@@ -361,6 +362,10 @@ export default function ClinicsPage() {
 
       {loading ? (
         <div className="rounded-[20px] border border-slate-200 bg-white p-10 text-center text-sm text-slate-500 shadow-sm">
+          <LoaderCircle
+            className="mx-auto animate-spin text-[#176B55]"
+            size={26}
+          />
           Loading clinics...
         </div>
       ) : clinics.length === 0 ? (

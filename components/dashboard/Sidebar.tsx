@@ -14,6 +14,7 @@ import {
   HeartPulse,
   ChevronLeft,
 } from "lucide-react";
+import { DashboardStaff } from "./DashboardLayoutClient";
 
 const mainNavigation = [
   {
@@ -57,17 +58,20 @@ const bottomNavigation = [
 ];
 
 type DashboardSidebarProps = {
+  staff: DashboardStaff;
   collapsed: boolean;
   onToggle: () => void;
   onNavigate?: () => void;
 };
 
 export default function DashboardSidebar({
+  staff,
   collapsed,
   onToggle,
   onNavigate,
 }: DashboardSidebarProps) {
   const pathname = usePathname();
+  const clinicName = staff.clinic_name;
 
   function isActive(href: string) {
     if (href === "/dashboard") {
@@ -79,15 +83,13 @@ export default function DashboardSidebar({
 
   return (
     <aside
-      className={`relative flex h-full shrink-0 flex-col bg-[#173F35] text-white transition-[width] duration-200 ${
-        collapsed ? "w-[76px]" : "w-[260px]"
-      }`}
+      className={`relative flex h-full shrink-0 flex-col bg-[#173F35] text-white transition-[width] duration-200 ${collapsed ? "w-[76px]" : "w-[260px]"
+        }`}
     >
       {/* Brand */}
       <div
-        className={`flex h-[76px] shrink-0 items-center border-b border-white/10 ${
-          collapsed ? "justify-center px-2" : "justify-between px-6"
-        }`}
+        className={`flex h-[76px] shrink-0 items-center border-b border-white/10 ${collapsed ? "justify-center px-2" : "justify-between px-6"
+          }`}
       >
         <Link
           href="/dashboard"
@@ -136,20 +138,18 @@ export default function DashboardSidebar({
                 onClick={onNavigate}
                 title={collapsed ? label : undefined}
                 aria-current={active ? "page" : undefined}
-                className={`group flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${
-                  active
+                className={`group flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${active
                     ? "bg-white/15 text-white shadow-sm"
                     : "text-white/65 hover:bg-white/8 hover:text-white"
-                } ${collapsed ? "justify-center" : ""}`}
+                  } ${collapsed ? "justify-center" : ""}`}
               >
                 <Icon
                   size={19}
                   strokeWidth={active ? 2.2 : 1.8}
-                  className={`shrink-0 ${
-                    active
+                  className={`shrink-0 ${active
                       ? "text-[#B8E6D0]"
                       : "text-white/60 group-hover:text-white"
-                  }`}
+                    }`}
                 />
 
                 {!collapsed && <span>{label}</span>}
@@ -181,11 +181,10 @@ export default function DashboardSidebar({
                 onClick={onNavigate}
                 title={collapsed ? label : undefined}
                 aria-current={active ? "page" : undefined}
-                className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${
-                  active
+                className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${active
                     ? "bg-white/15 text-white"
                     : "text-white/65 hover:bg-white/8 hover:text-white"
-                } ${collapsed ? "justify-center" : ""}`}
+                  } ${collapsed ? "justify-center" : ""}`}
               >
                 <Icon size={19} className="shrink-0" />
                 {!collapsed && <span>{label}</span>}
@@ -199,7 +198,7 @@ export default function DashboardSidebar({
       {!collapsed && (
         <div className="shrink-0 border-t border-white/10 p-4">
           <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-            <p className="truncate text-sm font-semibold">Medora Family Clinic</p>
+            <p className="truncate text-sm font-semibold">{clinicName}</p>
             <p className="mt-1 text-xs text-white/55">
               Clinic workspace
             </p>

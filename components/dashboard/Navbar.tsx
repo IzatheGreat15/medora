@@ -13,6 +13,7 @@ import {
   Menu,
   X,
 } from "lucide-react";
+import { DashboardStaff } from "./DashboardLayoutClient";
 
 const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -25,6 +26,7 @@ const pageTitles: Record<string, string> = {
 };
 
 type DashboardNavbarProps = {
+  staff: DashboardStaff;
   onMenuClick: () => void;
 };
 
@@ -73,6 +75,7 @@ const initialNotifications: Notification[] = [
 ];
 
 export default function DashboardNavbar({
+  staff,
   onMenuClick,
 }: DashboardNavbarProps) {
   const pathname = usePathname();
@@ -81,6 +84,11 @@ export default function DashboardNavbar({
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   const notificationRef = useRef<HTMLDivElement>(null);
+  const fullName = `${staff.first_name} ${staff.last_name}`;
+  const roleLabel = staff.clinic_role;
+  const initials =
+    `${staff.first_name?.[0] ?? ""}${staff.last_name?.[0] ?? ""}`
+      .toUpperCase() || "AD";
 
   const unreadCount = notifications.filter(
     (notification) => notification.unread,
@@ -329,12 +337,12 @@ export default function DashboardNavbar({
           className="flex items-center gap-2 rounded-xl p-1.5 transition hover:bg-slate-50 sm:gap-3 sm:px-2"
         >
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#DDF3E7] text-sm font-bold text-[#176B55]">
-            AD
+            {initials}
           </span>
 
           <span className="hidden text-left sm:block">
             <span className="block text-sm font-semibold text-[#173F35]">
-              Admin
+              {fullName}
             </span>
 
             <span className="mt-0.5 block text-xs text-slate-500">

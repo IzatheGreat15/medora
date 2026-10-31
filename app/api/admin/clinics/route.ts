@@ -231,28 +231,31 @@ export async function POST(request: NextRequest) {
         if (sendInvitation) {
 
             // UPDATE THIS!!!
-            const { data: invitation, error: invitationError } =
-                await admin.auth.admin.inviteUserByEmail(ownerEmail, {
-                    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/set-password`,
-                    data: {
+            const temporaryPassword = `${crypto.randomUUID()}-Aa1!`;
+
+            const { data: createdUser, error: createUserError } =
+                await admin.auth.admin.createUser({
+                    email: ownerEmail,
+                    password: temporaryPassword,
+                    email_confirm: true,
+                    user_metadata: {
                         first_name: firstName,
                         last_name: lastName,
                         clinic_id: clinic.id,
                     },
                 });
 
-
-            if (invitationError || !invitation.user) {
+            if (createUserError || !createdUser.user) {
                 throw new Error(
-                    invitationError?.message ??
-                        "Failed to invite the clinic administrator.",
+                    createUserError?.message ?? "Failed to create the clinic owner's account."
                 );
             }
 
-            invitedUserId = invitation.user.id;
+            const userId = createdUser.user.id;
+
 
             const { error: staffError } = await admin.from("staff").insert({
-                id: invitation.user.id,
+                id: userId,
                 clinic_id: clinic.id,
                 first_name: firstName,
                 last_name: lastName,
@@ -262,7 +265,34 @@ export async function POST(request: NextRequest) {
                 id_user_last_modified: platformAdmin.id,
             });
 
-            if (staffError) throw staffError;
+            if (staffError) {
+                // Avoid leaving an orphaned Auth account if staff creation fails.
+                await admin.auth.admin.deleteUser(userId);
+                throw new Error(staffError.message);
+            }
+
+            const { createClient } = await import("@supabase/supabase-js");
+            const supabase = createClient(
+                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+                {
+                    auth: {
+                        autoRefreshToken: false,
+                        persistSession: false,
+                    },
+                }
+            );
+
+            const { error: resetEmailError } =
+                await supabase.auth.resetPasswordForEmail(ownerEmail, {
+                    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/set-password`,
+                });
+
+            if (resetEmailError) {
+                throw new Error(
+                    `The account was created, but the password reset email could not be sent: ${resetEmailError.message}`
+                );
+            }
         }
 
         return NextResponse.json(
