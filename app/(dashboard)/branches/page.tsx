@@ -1,550 +1,896 @@
+
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-    Search,
-    Plus,
-    MapPin,
-    Phone,
-    Building2,
-    Users,
-    Pencil,
-    Trash2,
-    X,
-    ChevronDown,
+  Building2,
+  CheckCircle2,
+  ChevronDown,
+  LoaderCircle,
+  MapPin,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  Users,
+  X,
+  Phone,
+  Mail,
+  AlertCircle,
 } from "lucide-react";
 
-type BranchStatus = "Active" | "Inactive";
+import {
+  createBranch,
+  deleteBranch,
+  getBranches,
+  type Branch,
+  type BranchStatus,
+} from "./actions";
 
-type Branch = {
-    id: string;
-    name: string;
-    code: string;
-    address: string;
-    phone: string;
-    email?: string;
-    doctors: number;
-    status: BranchStatus;
+type StatusFilter = "All" | BranchStatus;
+
+type BranchFormData = {
+  name: string;
+  code: string;
+  address: string;
+  phone: string;
+  email: string;
+  status: BranchStatus;
 };
 
-const initialBranches: Branch[] = [
-    {
-        id: "branch-cebu",
-        name: "Cebu Branch",
-        code: "CEB-001",
-        address: "Cebu City, Cebu",
-        phone: "+63 32 123 4567",
-        email: "cebu@example.com",
-        doctors: 4,
-        status: "Active",
-    },
-    {
-        id: "branch-mandaue",
-        name: "Mandaue Branch",
-        code: "MAN-002",
-        address: "Mandaue City, Cebu",
-        phone: "+63 32 234 5678",
-        email: "mandaue@example.com",
-        doctors: 3,
-        status: "Active",
-    },
-    {
-        id: "branch-lapu-lapu",
-        name: "Lapu-Lapu Branch",
-        code: "LLC-003",
-        address: "Lapu-Lapu City, Cebu",
-        phone: "+63 32 345 6789",
-        email: "lapulapu@example.com",
-        doctors: 2,
-        status: "Inactive",
-    },
-];
+const initialFormData: BranchFormData = {
+  name: "",
+  code: "",
+  address: "",
+  phone: "",
+  email: "",
+  status: "Active",
+};
 
 function StatusBadge({ status }: { status: BranchStatus }) {
-    return (
-        <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${status === "Active"
-                ? "bg-emerald-50 text-emerald-700 ring-emerald-600/20"
-                : "bg-slate-100 text-slate-600 ring-slate-500/20"
-                }`}
-        >
-            <span
-                className={`h-1.5 w-1.5 rounded-full ${status === "Active" ? "bg-emerald-500" : "bg-slate-400"
-                    }`}
-            />
-            {status}
-        </span>
-    );
+  const isActive = status === "Active";
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+        isActive
+          ? "bg-emerald-50 text-emerald-700"
+          : "bg-gray-100 text-gray-600"
+      }`}
+    >
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${
+          isActive ? "bg-emerald-500" : "bg-gray-400"
+        }`}
+      />
+      {status}
+    </span>
+  );
 }
 
-export default function BranchesPage() {
-    const router = useRouter();
-    const [branches, setBranches] = useState<Branch[]>(initialBranches);
-    const [search, setSearch] = useState("");
-    const [statusFilter, setStatusFilter] = useState("All statuses");
-    const [branchToDelete, setBranchToDelete] = useState<Branch | null>(null);
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [actionMessage, setActionMessage] = useState("");
-    const [newBranch, setNewBranch] = useState({
-        name: "",
-        address: "",
-        phone: "",
-        email: "",
-    });
-
-    const filteredBranches = useMemo(() => {
-        const query = search.trim().toLowerCase();
-
-        return branches.filter((branch) => {
-            const matchesSearch =
-                !query ||
-                [
-                    branch.name,
-                    branch.code,
-                    branch.address,
-                    branch.phone,
-                ].some((value) => value.toLowerCase().includes(query));
-
-            const matchesStatus =
-                statusFilter === "All statuses" ||
-                branch.status === statusFilter;
-
-            return matchesSearch && matchesStatus;
-        });
-    }, [branches, search, statusFilter]);
-
-    function handleCreateBranch(event: React.FormEvent<HTMLFormElement>) {
-        event.preventDefault();
-
-        const name = newBranch.name.trim();
-        const nextNumber =
-            Math.max(
-                0,
-                ...branches.map((branch) => {
-                    const match = branch.code.match(/(\\d+)$/);
-                    return match ? Number(match[1]) : 0;
-                }),
-            ) + 1;
-
-        const branch: Branch = {
-            id: `branch-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}-${Date.now()}`,
-            name,
-            code: `BR-${String(nextNumber).padStart(3, "0")}`,
-            address: newBranch.address.trim(),
-            phone: newBranch.phone.trim(),
-            email: newBranch.email.trim(),
-            doctors: 0,
-            status: "Active",
-        };
-
-        setBranches((current) => [branch, ...current]);
-        setSearch("");
-        setStatusFilter("All statuses");
-        setActionMessage(`${branch.name} was added successfully.`);
-        setIsCreateModalOpen(false);
-        setNewBranch({ name: "", address: "", phone: "", email: "" });
-    }
-
-    function handleDeleteBranch() {
-        if (!branchToDelete) return;
-
-        setBranches((current) =>
-            current.filter((branch) => branch.id !== branchToDelete.id),
-        );
-        setActionMessage(`${branchToDelete.name} was deleted.`);
-        setBranchToDelete(null);
-    }
-
-    function handleEditBranch(branch: Branch) {
-        router.push(`/branches/${branch.id}/edit`);
-    }
-
-    return (
-        <div className="mx-auto space-y-6">
-            {actionMessage && (
-                <div
-                    role="status"
-                    className="flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
-                >
-                    <span>{actionMessage}</span>
-                    <button
-                        type="button"
-                        onClick={() => setActionMessage("")}
-                        aria-label="Dismiss message"
-                    >
-                        <X size={16} />
-                    </button>
-                </div>
-            )}
-
-            <section className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                {[
-                    {
-                        label: "Total branches",
-                        value: branches.length,
-                        icon: Building2,
-                        color: "bg-slate-100 text-slate-600",
-                    },
-                    {
-                        label: "Active branches",
-                        value: branches.filter((branch) => branch.status === "Active").length,
-                        icon: MapPin,
-                        color: "bg-emerald-50 text-emerald-700",
-                    },
-                    {
-                        label: "Doctors across branches",
-                        value: branches.reduce((total, branch) => total + branch.doctors, 0),
-                        icon: Users,
-                        color: "bg-[#DDF3E7] text-[#176B55]",
-                    },
-                ].map(({ label, value, icon: Icon, color }) => (
-                    <article
-                        key={label}
-                        className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-900/[0.02]"
-                    >
-                        <div className="flex items-center justify-between gap-2">
-                            <p className="text-sm text-slate-500">{label}</p>
-                            <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${color}`}>
-                                <Icon size={18} />
-                            </span>
-                        </div>
-                        <p className="mt-3 text-3xl font-bold text-[#173F35]">{value}</p>
-                    </article>
-                ))}
-            </section>
-
-            <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/[0.02]">
-                <div className="flex items-center justify-between gap-2 border-b border-slate-100 p-3 sm:gap-3 sm:p-4">
-                    {/* Branch count — hidden on very small screens */}
-                    <p className="hidden shrink-0 text-sm text-slate-500 md:block">
-                        <span className="font-semibold text-[#173F35]">
-                            {filteredBranches.length}
-                        </span>{" "}
-                        found
-                    </p>
-
-                    <div className="flex gap-4">
-                        {/* Search */}
-                    <div className="relative min-w-0">
-                        <Search
-                            size={18}
-                            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                        />
-                        <input
-                            type="search"
-                            value={search}
-                            onChange={(event) => setSearch(event.target.value)}
-                            placeholder="Search..."
-                            aria-label="Search branches"
-                            className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-2 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#82A995] focus:ring-2 focus:ring-[#DDF3E7] sm:h-11 sm:pl-10 sm:pr-4"
-                        />
-                    </div>
-
-                    {/* Status filter */}
-                    <div className="relative w-[120px] shrink-0 sm:w-44">
-                        <select
-                            value={statusFilter}
-                            onChange={(event) => setStatusFilter(event.target.value)}
-                            aria-label="Filter branches by status"
-                            className="h-10 w-full appearance-none rounded-xl border border-slate-200 bg-white py-2 pl-2 pr-7 text-xs text-slate-600 outline-none focus:border-[#82A995] sm:h-11 sm:pl-3 sm:pr-9 sm:text-sm"
-                        >
-                            <option>All statuses</option>
-                            <option>Active</option>
-                            <option>Inactive</option>
-                        </select>
-                        <ChevronDown
-                            size={15}
-                            className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 sm:right-3"
-                        />
-                    </div>
-
-                    {/* Add branch */}
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setActionMessage("");
-                            setIsCreateModalOpen(true);
-                        }}
-                        aria-label="Add branch"
-                        title="Add branch"
-                        className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#176B55] text-white transition hover:bg-[#173F35] focus:outline-none focus:ring-2 focus:ring-[#DDF3E7] sm:h-11 sm:w-11"
-                    >
-                        <Plus size={19} />
-                    </button>
-                    </div>
-                </div>
-
-                <div className="overflow-x-auto">
-                    <table className="w-full min-w-[850px] text-left">
-                        <thead>
-                            <tr className="border-y border-slate-100 bg-slate-50/80">
-                                {["Branch", "Contact details", "Doctors", "Status", "Actions"].map((heading) => (
-                                    <th
-                                        key={heading}
-                                        className="whitespace-nowrap px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500"
-                                    >
-                                        {heading}
-                                    </th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {filteredBranches.map((branch) => (
-                                <tr key={branch.id} className="transition hover:bg-[#F7F9F6]/80">
-                                    <td className="px-5 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#DDF3E7] text-[#176B55]">
-                                                <Building2 size={20} />
-                                            </span>
-                                            <div>
-                                                <p className="whitespace-nowrap text-sm font-semibold text-[#173F35]">
-                                                    {branch.name}
-                                                </p>
-                                                <p className="mt-1 text-xs text-slate-400">
-                                                    {branch.code}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-5 py-4">
-                                        <p className="flex items-center gap-2 text-sm text-slate-600">
-                                            <MapPin size={14} className="shrink-0 text-slate-400" />
-                                            {branch.address}
-                                        </p>
-                                        <p className="mt-1.5 flex items-center gap-2 text-xs text-slate-500">
-                                            <Phone size={13} className="shrink-0 text-slate-400" />
-                                            {branch.phone}
-                                        </p>
-                                        {branch.email && (
-                                            <p className="mt-1.5 text-xs text-slate-500">
-                                                {branch.email}
-                                            </p>
-                                        )}
-                                    </td>
-                                    <td className="px-5 py-4">
-                                        <span className="inline-flex items-center gap-2 text-sm text-slate-600">
-                                            <Users size={15} className="text-slate-400" />
-                                            {branch.doctors} doctors
-                                        </span>
-                                    </td>
-                                    <td className="px-5 py-4">
-                                        <StatusBadge status={branch.status} />
-                                    </td>
-                                    <td className="px-5 py-4">
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => handleEditBranch(branch)}
-                                                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-[#82A995] hover:bg-[#DDF3E7] hover:text-[#176B55] focus:outline-none focus:ring-4 focus:ring-[#DDF3E7]"
-                                            >
-                                                <Pencil className="h-4 w-4" />
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setBranchToDelete(branch)}
-                                                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-4 focus:ring-red-100"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-
-                            {filteredBranches.length === 0 && (
-                                <tr>
-                                    <td colSpan={5} className="px-5 py-16 text-center">
-                                        <Search size={28} className="mx-auto text-slate-300" />
-                                        <p className="mt-3 font-semibold text-[#173F35]">No branches found</p>
-                                        <p className="mt-1 text-sm text-slate-500">
-                                            Try changing your search or status filter.
-                                        </p>
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            {isCreateModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <button
-                        type="button"
-                        aria-label="Close add branch modal"
-                        onClick={() => setIsCreateModalOpen(false)}
-                        className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px]"
-                    />
-
-                    <section
-                        role="dialog"
-                        aria-modal="true"
-                        aria-labelledby="create-branch-title"
-                        className="relative z-10 max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white shadow-2xl"
-                    >
-                        <div className="flex items-start justify-between border-b border-slate-100 px-6 py-5">
-                            <div>
-                                <h3 id="create-branch-title" className="mt-1 text-xl font-bold text-[#173F35]">
-                                    Add branch
-                                </h3>
-                                <p className="mt-1 text-sm text-slate-500">
-                                    Add the branch's basic details. You can configure doctors and schedules later.
-                                </p>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setIsCreateModalOpen(false)}
-                                aria-label="Close modal"
-                                className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleCreateBranch}>
-                            <div className="space-y-5 px-6 py-6">
-                                <div>
-                                    <h4 className="text-sm font-semibold text-[#173F35]">Basic information</h4>
-                                    <p className="mt-1 text-xs text-slate-500">These details help identify the clinic location.</p>
-                                </div>
-
-                                <label className="block text-sm font-medium text-slate-700">
-                                    Branch name *
-                                    <input
-                                        required
-                                        autoFocus
-                                        value={newBranch.name}
-                                        onChange={(event) => setNewBranch((current) => ({ ...current, name: event.target.value }))}
-                                        placeholder="e.g. IT Park Branch"
-                                        className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none transition focus:border-[#82A995] focus:ring-2 focus:ring-[#DDF3E7]"
-                                    />
-                                </label>
-
-                                <label className="block text-sm font-medium text-slate-700">
-                                    Branch address *
-                                    <textarea
-                                        required
-                                        rows={2}
-                                        value={newBranch.address}
-                                        onChange={(event) => setNewBranch((current) => ({ ...current, address: event.target.value }))}
-                                        placeholder="Street, city, province, postal code"
-                                        className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition focus:border-[#82A995] focus:ring-2 focus:ring-[#DDF3E7]"
-                                    />
-                                </label>
-
-                                <div className="border-t border-slate-100 pt-5">
-                                    <h4 className="text-sm font-semibold text-[#173F35]">Contact details</h4>
-                                    <p className="mt-1 text-xs text-slate-500">Use the contact information patients can use to reach this branch.</p>
-                                </div>
-
-                                <label className="block text-sm font-medium text-slate-700">
-                                    Contact phone *
-                                    <input
-                                        required
-                                        type="tel"
-                                        value={newBranch.phone}
-                                        onChange={(event) => setNewBranch((current) => ({ ...current, phone: event.target.value }))}
-                                        placeholder="e.g. +63 32 123 4567"
-                                        className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none transition focus:border-[#82A995] focus:ring-2 focus:ring-[#DDF3E7]"
-                                    />
-                                </label>
-
-                                <label className="block text-sm font-medium text-slate-700">
-                                    Contact email
-                                    <input
-                                        type="email"
-                                        value={newBranch.email}
-                                        onChange={(event) => setNewBranch((current) => ({ ...current, email: event.target.value }))}
-                                        placeholder="e.g. itpark@clinic.com"
-                                        className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none transition focus:border-[#82A995] focus:ring-2 focus:ring-[#DDF3E7]"
-                                    />
-                                </label>
-
-                                <div className="rounded-xl border border-[#DDF3E7] bg-[#F7F9F6] p-4">
-                                    <div className="flex items-start gap-3">
-                                        <Building2 size={18} className="mt-0.5 shrink-0 text-[#176B55]" />
-                                        <div>
-                                            <p className="text-sm font-semibold text-[#173F35]">Configure later</p>
-                                            <p className="mt-1 text-xs leading-5 text-slate-500">
-                                                Doctors, opening hours, and appointment schedules can be configured after the branch is created.
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <p className="text-xs leading-5 text-slate-400">
-                                    Demo only — branch details are stored in temporary page state and will not persist after refresh.
-                                </p>
-                            </div>
-
-                            <div className="flex flex-col-reverse gap-3 border-t border-slate-100 px-6 py-5 sm:flex-row sm:justify-end">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsCreateModalOpen(false)}
-                                    className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#176B55] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#173F35]"
-                                >
-                                    Save
-                                </button>
-                            </div>
-                        </form>
-                    </section>
-                </div>
-            )}
-
-            {branchToDelete && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <button
-                        type="button"
-                        aria-label="Close delete confirmation"
-                        onClick={() => setBranchToDelete(null)}
-                        className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px]"
-                    />
-                    <section
-                        role="alertdialog"
-                        aria-modal="true"
-                        aria-labelledby="delete-branch-title"
-                        className="relative z-10 w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
-                    >
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
-                            <Trash2 size={22} />
-                        </div>
-                        <h3 id="delete-branch-title" className="mt-4 text-lg font-bold text-[#173F35]">
-                            Delete branch?
-                        </h3>
-                        <p className="mt-2 text-sm leading-6 text-slate-500">
-                            Are you sure you want to delete{" "}
-                            <span className="font-semibold text-slate-700">{branchToDelete.name}</span>?
-                            This action cannot be undone.
-                        </p>
-                        <p className="mt-2 text-xs leading-5 text-amber-700">
-                            Before deleting a real branch, make sure it has no upcoming bookings or records that need to be retained.
-                        </p>
-                        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                            <button
-                                type="button"
-                                onClick={() => setBranchToDelete(null)}
-                                className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleDeleteBranch}
-                                className="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-rose-700"
-                            >
-                                <Trash2 size={16} />
-                                Delete branch
-                            </button>
-                        </div>
-                    </section>
-                </div>
-            )}
+function SummaryCard({
+  title,
+  value,
+  description,
+  icon: Icon,
+  iconClassName,
+}: {
+  title: string;
+  value: number;
+  description: string;
+  icon: typeof Building2;
+  iconClassName: string;
+}) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm text-gray-500">{title}</p>
+          <p className="mt-2 text-2xl font-semibold tracking-tight text-gray-900">
+            {value}
+          </p>
+          <p className="mt-1 text-xs text-gray-500">{description}</p>
         </div>
-    );
+
+        <div className={`rounded-lg p-2.5 ${iconClassName}`}>
+          <Icon size={20} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Modal({
+  title,
+  description,
+  onClose,
+  children,
+}: {
+  title: string;
+  description: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-xl"
+      >
+        <div className="flex items-start justify-between border-b border-gray-100 px-6 py-5">
+          <div>
+            <h2
+              id="modal-title"
+              className="text-lg font-semibold text-gray-900"
+            >
+              {title}
+            </h2>
+            <p className="mt-1 text-sm text-gray-500">{description}</p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close modal"
+            className="rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="px-6 py-5">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function FormField({
+  label,
+  required,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label className="block text-sm font-medium text-gray-700">
+        {label}
+        {required && <span className="ml-1 text-red-500">*</span>}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+const inputClassName =
+  "w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100";
+
+export default function BranchesPage() {
+  const router = useRouter();
+
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [deletingBranchId, setDeletingBranchId] = useState<string | null>(
+    null
+  );
+
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [branchToDelete, setBranchToDelete] = useState<Branch | null>(null);
+
+  const [formData, setFormData] =
+    useState<BranchFormData>(initialFormData);
+
+  const [errorMessage, setErrorMessage] = useState("");
+  const [formError, setFormError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+
+  const loadBranches = useCallback(async () => {
+    setIsLoading(true);
+    setErrorMessage("");
+
+    try {
+      const result = await getBranches();
+      setBranches(result);
+    } catch (error) {
+      console.error("Failed to load branches:", error);
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to load branches. Please try again."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadBranches();
+  }, [loadBranches]);
+
+  const filteredBranches = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    return branches.filter((branch) => {
+      const matchesSearch =
+        !query ||
+        branch.name.toLowerCase().includes(query) ||
+        branch.code.toLowerCase().includes(query) ||
+        branch.address.toLowerCase().includes(query) ||
+        branch.phone.toLowerCase().includes(query) ||
+        (branch.email ?? "").toLowerCase().includes(query);
+
+      const matchesStatus =
+        statusFilter === "All" || branch.status === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [branches, searchQuery, statusFilter]);
+
+  const activeBranches = branches.filter(
+    (branch) => branch.status === "Active"
+  ).length;
+
+  const inactiveBranches = branches.filter(
+    (branch) => branch.status === "Inactive"
+  ).length;
+
+  const totalDoctors = branches.reduce(
+    (total, branch) => total + (branch.doctors ?? 0),
+    0
+  );
+
+  function openAddModal() {
+    setFormData(initialFormData);
+    setFormError("");
+    setErrorMessage("");
+    setSuccessMessage("");
+    setIsAddModalOpen(true);
+  }
+
+  function closeAddModal() {
+    if (isSaving) return;
+
+    setIsAddModalOpen(false);
+    setFormData(initialFormData);
+    setFormError("");
+  }
+
+  function updateFormField<K extends keyof BranchFormData>(
+    field: K,
+    value: BranchFormData[K]
+  ) {
+    setFormData((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  }
+
+  async function handleCreateBranch(
+    event: React.FormEvent<HTMLFormElement>
+  ) {
+    event.preventDefault();
+    setFormError("");
+    setSuccessMessage("");
+
+    const name = formData.name.trim();
+    const code = formData.code.trim();
+    const address = formData.address.trim();
+    const phone = formData.phone.trim();
+    const email = formData.email.trim();
+
+    if (!name || !code || !address || !phone) {
+      setFormError("Please complete all required fields.");
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      await createBranch({
+        name,
+        code,
+        address,
+        phone,
+        email,
+        status: formData.status,
+      });
+
+      setIsAddModalOpen(false);
+      setFormData(initialFormData);
+      setSuccessMessage("Branch created successfully.");
+
+      await loadBranches();
+    } catch (error) {
+      console.error("Failed to create branch:", error);
+      setFormError(
+        error instanceof Error
+          ? error.message
+          : "Unable to create branch. Please try again."
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handleDeleteBranch() {
+    if (!branchToDelete) return;
+
+    const branch = branchToDelete;
+
+    setDeletingBranchId(branch.id);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      await deleteBranch(branch.id);
+
+      setBranches((current) =>
+        current.filter((item) => item.id !== branch.id)
+      );
+
+      setBranchToDelete(null);
+      setSuccessMessage(`${branch.name} was deleted successfully.`);
+    } catch (error) {
+      console.error("Failed to delete branch:", error);
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to delete this branch. Please try again."
+      );
+      setBranchToDelete(null);
+    } finally {
+      setDeletingBranchId(null);
+    }
+  }
+
+  function handleEditBranch(branch: Branch) {
+    router.push(`/branches/${branch.id}/edit`);
+  }
+
+  return (
+    <div className="space-y-6 pb-10">
+      {/* Page heading */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700">
+              <Building2 size={22} />
+            </div>
+
+            <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
+              Branches
+            </h1>
+          </div>
+
+          <p className="mt-2 text-sm text-gray-500">
+            Manage your clinic locations and their contact information.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={openAddModal}
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+        >
+          <Plus size={18} />
+          Add branch
+        </button>
+      </div>
+
+      {/* Feedback messages */}
+      {errorMessage && (
+        <div
+          role="alert"
+          className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+        >
+          <AlertCircle size={18} className="mt-0.5 shrink-0" />
+          <div className="flex-1">{errorMessage}</div>
+          <button
+            type="button"
+            onClick={() => setErrorMessage("")}
+            aria-label="Dismiss error"
+            className="rounded p-0.5 hover:bg-red-100"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
+      {successMessage && (
+        <div
+          role="status"
+          className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"
+        >
+          <CheckCircle2 size={18} className="mt-0.5 shrink-0" />
+          <div className="flex-1">{successMessage}</div>
+          <button
+            type="button"
+            onClick={() => setSuccessMessage("")}
+            aria-label="Dismiss message"
+            className="rounded p-0.5 hover:bg-emerald-100"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* Summary cards */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <SummaryCard
+          title="Total branches"
+          value={branches.length}
+          description="All clinic locations"
+          icon={Building2}
+          iconClassName="bg-emerald-50 text-emerald-700"
+        />
+
+        <SummaryCard
+          title="Active branches"
+          value={activeBranches}
+          description="Currently active locations"
+          icon={CheckCircle2}
+          iconClassName="bg-blue-50 text-blue-700"
+        />
+
+        <SummaryCard
+          title="Doctors assigned"
+          value={totalDoctors}
+          description={`${inactiveBranches} inactive ${
+            inactiveBranches === 1 ? "branch" : "branches"
+          }`}
+          icon={Users}
+          iconClassName="bg-violet-50 text-violet-700"
+        />
+      </div>
+
+      {/* Branches table */}
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+        {/* Toolbar */}
+        <div className="flex flex-col gap-3 border-b border-gray-200 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="hidden text-sm text-gray-500 sm:block">
+            Showing{" "}
+            <span className="font-medium text-gray-900">
+              {filteredBranches.length}
+            </span>{" "}
+            of{" "}
+            <span className="font-medium text-gray-900">
+              {branches.length}
+            </span>{" "}
+            branches
+          </p>
+
+          <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+            <div className="relative min-w-0 flex-1 sm:w-60 sm:flex-none">
+              <Search
+                size={16}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search branches..."
+                aria-label="Search branches"
+                className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm outline-none transition placeholder:text-gray-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+              />
+            </div>
+
+            <div className="relative">
+              <select
+                value={statusFilter}
+                onChange={(event) =>
+                  setStatusFilter(event.target.value as StatusFilter)
+                }
+                aria-label="Filter branches by status"
+                className="appearance-none rounded-lg border border-gray-200 bg-white py-2 pl-3 pr-9 text-sm text-gray-700 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+              >
+                <option value="All">All statuses</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+
+              <ChevronDown
+                size={15}
+                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={openAddModal}
+              title="Add branch"
+              aria-label="Add branch"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white transition hover:bg-emerald-700"
+            >
+              <Plus size={19} />
+            </button>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[760px] text-left">
+            <thead className="bg-gray-50">
+              <tr className="border-b border-gray-200">
+                <th className="px-5 py-3 text-xs font-medium uppercase tracking-wide text-gray-500">
+                  Branch
+                </th>
+                <th className="px-5 py-3 text-xs font-medium uppercase tracking-wide text-gray-500">
+                  Contact details
+                </th>
+                <th className="px-5 py-3 text-xs font-medium uppercase tracking-wide text-gray-500">
+                  Doctors
+                </th>
+                <th className="px-5 py-3 text-xs font-medium uppercase tracking-wide text-gray-500">
+                  Status
+                </th>
+                <th className="px-5 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-500">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-gray-100">
+              {isLoading ? (
+                <tr>
+                  <td colSpan={5} className="px-5 py-16 text-center">
+                    <div className="flex flex-col items-center gap-3 text-sm text-gray-500">
+                      <LoaderCircle
+                        size={22}
+                        className="animate-spin text-emerald-600"
+                      />
+                      Loading branches...
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredBranches.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-5 py-16 text-center">
+                    <div className="mx-auto flex max-w-sm flex-col items-center">
+                      <div className="rounded-full bg-gray-100 p-4 text-gray-400">
+                        <Building2 size={25} />
+                      </div>
+
+                      <p className="mt-4 text-sm font-medium text-gray-900">
+                        {branches.length === 0
+                          ? "No branches yet"
+                          : "No branches found"}
+                      </p>
+
+                      <p className="mt-1 text-sm text-gray-500">
+                        {branches.length === 0
+                          ? "Add your first clinic location to get started."
+                          : "Try changing your search or status filter."}
+                      </p>
+
+                      {branches.length === 0 && (
+                        <button
+                          type="button"
+                          onClick={openAddModal}
+                          className="mt-4 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700"
+                        >
+                          <Plus size={16} />
+                          Add your first branch
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filteredBranches.map((branch) => (
+                  <tr
+                    key={branch.id}
+                    className="transition hover:bg-gray-50/70"
+                  >
+                    <td className="px-5 py-4">
+                      <div className="flex items-start gap-3">
+                        <div className="mt-0.5 rounded-lg bg-emerald-50 p-2 text-emerald-700">
+                          <Building2 size={18} />
+                        </div>
+
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {branch.name}
+                          </p>
+                          <p className="mt-1 text-xs text-gray-500">
+                            Code: {branch.code}
+                          </p>
+                          <p className="mt-1 flex max-w-xs items-start gap-1.5 text-xs text-gray-500">
+                            <MapPin
+                              size={13}
+                              className="mt-0.5 shrink-0"
+                            />
+                            <span>{branch.address}</span>
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+
+                    <td className="px-5 py-4">
+                      <div className="space-y-1.5 text-sm text-gray-600">
+                        <p className="flex items-center gap-2">
+                          <Phone
+                            size={14}
+                            className="shrink-0 text-gray-400"
+                          />
+                          {branch.phone || "No phone provided"}
+                        </p>
+
+                        <p className="flex items-center gap-2">
+                          <Mail
+                            size={14}
+                            className="shrink-0 text-gray-400"
+                          />
+                          <span className="max-w-[200px] truncate">
+                            {branch.email || "No email provided"}
+                          </span>
+                        </p>
+                      </div>
+                    </td>
+
+                    <td className="px-5 py-4">
+                      <div className="inline-flex items-center gap-2 text-sm text-gray-700">
+                        <Users size={15} className="text-gray-400" />
+                        {branch.doctors ?? 0}
+                      </div>
+                    </td>
+
+                    <td className="px-5 py-4">
+                      <StatusBadge status={branch.status} />
+                    </td>
+
+                    <td className="px-5 py-4">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleEditBranch(branch)}
+                          title="Edit branch"
+                          aria-label={`Edit ${branch.name}`}
+                          className="rounded-lg p-2 text-gray-500 transition hover:bg-emerald-50 hover:text-emerald-700"
+                        >
+                          <Pencil size={16} />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setBranchToDelete(branch)}
+                          title="Delete branch"
+                          aria-label={`Delete ${branch.name}`}
+                          disabled={deletingBranchId === branch.id}
+                          className="rounded-lg p-2 text-gray-500 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {deletingBranchId === branch.id ? (
+                            <LoaderCircle
+                              size={16}
+                              className="animate-spin"
+                            />
+                          ) : (
+                            <Trash2 size={16} />
+                          )}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Table footer */}
+        {!isLoading && filteredBranches.length > 0 && (
+          <div className="border-t border-gray-200 px-5 py-3">
+            <p className="text-xs text-gray-500">
+              Showing {filteredBranches.length}{" "}
+              {filteredBranches.length === 1 ? "branch" : "branches"}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Add branch modal */}
+      {isAddModalOpen && (
+        <Modal
+          title="Add branch"
+          description="Enter the details for your new clinic location."
+          onClose={closeAddModal}
+        >
+          <form onSubmit={handleCreateBranch} className="space-y-4">
+            {formError && (
+              <div
+                role="alert"
+                className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+              >
+                <AlertCircle size={17} className="mt-0.5 shrink-0" />
+                <span>{formError}</span>
+              </div>
+            )}
+
+            <FormField label="Branch name" required>
+              <input
+                autoFocus
+                type="text"
+                value={formData.name}
+                onChange={(event) =>
+                  updateFormField("name", event.target.value)
+                }
+                placeholder="e.g. Cebu City Branch"
+                maxLength={150}
+                required
+                className={inputClassName}
+              />
+            </FormField>
+
+            <FormField label="Branch code" required>
+              <input
+                type="text"
+                value={formData.code}
+                onChange={(event) =>
+                  updateFormField("code", event.target.value)
+                }
+                placeholder="e.g. CEB-001"
+                maxLength={50}
+                required
+                className={inputClassName}
+              />
+              <p className="text-xs text-gray-500">
+                Must be unique within your clinic.
+              </p>
+            </FormField>
+
+            <FormField label="Address" required>
+              <textarea
+                value={formData.address}
+                onChange={(event) =>
+                  updateFormField("address", event.target.value)
+                }
+                placeholder="Complete branch address"
+                rows={2}
+                required
+                className={inputClassName}
+              />
+            </FormField>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <FormField label="Phone number" required>
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(event) =>
+                    updateFormField("phone", event.target.value)
+                  }
+                  placeholder="e.g. 0917 123 4567"
+                  required
+                  className={inputClassName}
+                />
+              </FormField>
+
+              <FormField label="Email address">
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(event) =>
+                    updateFormField("email", event.target.value)
+                  }
+                  placeholder="branch@example.com"
+                  className={inputClassName}
+                />
+              </FormField>
+            </div>
+
+            <FormField label="Status" required>
+              <select
+                value={formData.status}
+                onChange={(event) =>
+                  updateFormField(
+                    "status",
+                    event.target.value as BranchStatus
+                  )
+                }
+                className={inputClassName}
+              >
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </FormField>
+
+            <div className="flex flex-col-reverse gap-3 border-t border-gray-100 pt-5 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={closeAddModal}
+                disabled={isSaving}
+                className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSaving && (
+                  <LoaderCircle size={16} className="animate-spin" />
+                )}
+                {isSaving ? "Creating..." : "Create branch"}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* Delete confirmation modal */}
+      {branchToDelete && (
+        <Modal
+          title="Delete branch"
+          description="Are you sure you want to delete this branch?"
+          onClose={() => {
+            if (!deletingBranchId) setBranchToDelete(null);
+          }}
+        >
+          <div className="space-y-5">
+            <div className="rounded-lg border border-red-100 bg-red-50 p-4">
+              <div className="flex items-start gap-3">
+                <div className="rounded-lg bg-red-100 p-2 text-red-600">
+                  <Trash2 size={18} />
+                </div>
+
+                <div>
+                  <p className="font-medium text-gray-900">
+                    {branchToDelete.name}
+                  </p>
+                  <p className="mt-1 text-sm text-gray-600">
+                    Branch code: {branchToDelete.code}
+                  </p>
+                  <p className="mt-1 text-sm text-gray-600">
+                    This action cannot be undone.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setBranchToDelete(null)}
+                disabled={deletingBranchId !== null}
+                className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDeleteBranch}
+                disabled={deletingBranchId !== null}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {deletingBranchId === branchToDelete.id && (
+                  <LoaderCircle size={16} className="animate-spin" />
+                )}
+                {deletingBranchId === branchToDelete.id
+                  ? "Deleting..."
+                  : "Delete branch"}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
 }
