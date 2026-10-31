@@ -12,7 +12,7 @@ async function AuthenticatedDashboard({
 }) {
   await connection();
 
-  const { staff, clinicName } = await requireClinicUser();
+  const { staff } = await requireClinicUser();
 
   return (
     <DashboardLayoutClient
@@ -23,7 +23,7 @@ async function AuthenticatedDashboard({
         role: "clinic_user",
         clinic_role: staff.clinic_role,
         clinic_id: staff.clinic_id!,
-        clinic_name: clinicName,
+        clinic_name: staff.clinic_name,
       }}
     >
       {children}

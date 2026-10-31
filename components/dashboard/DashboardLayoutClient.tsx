@@ -18,12 +18,10 @@ export type DashboardStaff = {
 
 export default function DashboardLayoutClient({
   children,
-  staff,
-  clinicName,
+  staff
 }: Readonly<{
   children: React.ReactNode;
   staff: DashboardStaff;
-  clinicName: string;
 }>) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -84,7 +82,6 @@ export default function DashboardLayoutClient({
           >
             <DashboardNavbarWithPathname
               staff={staff}
-              clinicName={clinicName}
               onMenuClick={() => setMobileMenuOpen(true)}
             />
           </Suspense>
@@ -100,11 +97,9 @@ export default function DashboardLayoutClient({
 
 function DashboardNavbarWithPathname({
   staff,
-  clinicName,
   onMenuClick,
 }: {
   staff: DashboardStaff;
-  clinicName: string;
   onMenuClick: () => void;
 }) {
   const pathname = usePathname();
