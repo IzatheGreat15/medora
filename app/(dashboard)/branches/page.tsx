@@ -380,15 +380,6 @@ export default function BranchesPage() {
             Manage your clinic locations and their contact information.
           </p>
         </div>
-
-        <button
-          type="button"
-          onClick={openAddModal}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
-        >
-          <Plus size={18} />
-          Add branch
-        </button>
       </div>
 
       {/* Feedback messages */}
@@ -429,7 +420,7 @@ export default function BranchesPage() {
       )}
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-4 grid-cols-2">
         <SummaryCard
           title="Total branches"
           value={branches.length}

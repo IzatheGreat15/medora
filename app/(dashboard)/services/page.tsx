@@ -32,6 +32,7 @@ import {
   deleteService,
   type Service,
 } from "./actions";
+import Toast, { ToastType } from "@/components/shared/Toast";
 
 type ServiceFormData = {
   name: string;
@@ -68,6 +69,7 @@ export default function ServicesPage() {
   const [deleting, setDeleting] = useState(false);
 
   const [savedMessage, setSavedMessage] = useState("");
+  const [messageType, setMessageType] = useState<ToastType>("success");
   const [pageError, setPageError] = useState("");
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
@@ -182,6 +184,7 @@ export default function ServicesPage() {
           duration,
           rate,
         });
+        setMessageType("success");
         setSavedMessage("Service updated successfully.");
       } else {
         await createService({
@@ -189,6 +192,7 @@ export default function ServicesPage() {
           duration,
           rate,
         });
+        setMessageType("success");
         setSavedMessage("Service added successfully.");
       }
 
@@ -261,6 +265,7 @@ export default function ServicesPage() {
       );
 
       setDeleteTarget(null);
+      setMessageType("success");
       setSavedMessage("Service deleted successfully.");
     } catch (error) {
       setPageError(
@@ -536,21 +541,11 @@ export default function ServicesPage() {
 
       {/* Success feedback */}
       {savedMessage && (
-        <div
-          role="status"
-          className="flex items-center gap-2 rounded-xl border border-[#C9E8D5] bg-[#DDF3E7] px-4 py-3 text-sm text-[#176B55]"
-        >
-          <Check className="h-4 w-4 shrink-0" />
-          {savedMessage}
-          <button
-            type="button"
-            onClick={() => setSavedMessage("")}
-            aria-label="Dismiss message"
-            className="ml-auto rounded p-1 hover:bg-white/60"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+        <Toast
+            message={savedMessage}
+            type={messageType}
+            onClose={() => setSavedMessage("")}
+        />
       )}
 
       {/* Add / Edit modal */}

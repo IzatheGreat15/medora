@@ -1,13 +1,12 @@
+
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
     Activity,
     ArrowDownRight,
     ArrowUpRight,
-    Plus,
-    Stethoscope,
     UserCheck,
     UserRound,
     Users,
@@ -17,63 +16,16 @@ import {
 import DoctorsTable, {
     type DoctorTableItem,
 } from "@/components/doctor/DoctorsTable";
+import DeleteConfirmModal from "@/components/shared/DeleteConfirmModal";
 
-const initialDoctors: DoctorTableItem[] = [
-    {
-        id: "doctor-maria-santos",
-        name: "Dr. Maria Santos",
-        specialty: "General Practitioner",
-        email: "maria.santos@example.com",
-        phone: "+63 917 123 4567",
-        status: "Active",
-        branches: ["Cebu Branch", "Mandaue Branch"],
-    },
-    {
-        id: "doctor-angela-reyes",
-        name: "Dr. Angela Reyes",
-        specialty: "Dermatologist",
-        email: "angela.reyes@example.com",
-        phone: "+63 918 234 5678",
-        status: "Active",
-        branches: ["Cebu Branch"],
-    },
-    {
-        id: "doctor-john-cruz",
-        name: "Dr. John Cruz",
-        specialty: "Dentist",
-        email: "john.cruz@example.com",
-        phone: "+63 919 345 6789",
-        status: "Inactive",
-        branches: ["Cebu Branch"],
-    },
-    {
-        id: "doctor-paolo-lim",
-        name: "Dr. Paolo Lim",
-        specialty: "Pediatrician",
-        email: "paolo.lim@example.com",
-        phone: "+63 920 456 7890",
-        status: "Active",
-        branches: ["Mandaue Branch"],
-    },
-    {
-        id: "doctor-sophia-garcia",
-        name: "Dr. Sophia Garcia",
-        specialty: "Cardiologist",
-        email: "sophia.garcia@example.com",
-        phone: "+63 921 567 8901",
-        status: "Active",
-        branches: ["Lapu-Lapu Branch"],
-    },
-    {
-        id: "doctor-miguel-tan",
-        name: "Dr. Miguel Tan",
-        specialty: "Orthopedic Surgeon",
-        email: "miguel.tan@example.com",
-        phone: "+63 922 678 9012",
-        status: "Inactive",
-        branches: ["Cebu Branch", "Lapu-Lapu Branch"],
-    },
-];
+import {
+    createDoctor,
+    deleteDoctor,
+    getDoctorBranchOptions,
+    getDoctors,
+    type DoctorBranchOption,
+    type DoctorStatus,
+} from "./actions";
 
 function MetricCard({
     title,
@@ -95,7 +47,6 @@ function MetricCard({
             <div className="flex items-start justify-between gap-3">
                 <div>
                     <p className="text-sm font-medium text-slate-500">{title}</p>
-
                     <p className="mt-3 text-3xl font-bold tracking-tight text-[#173F35]">
                         {value}
                     </p>
@@ -129,56 +80,82 @@ function AddDoctorModal({
 }: {
     open: boolean;
     onClose: () => void;
-    onSave: (doctor: DoctorTableItem) => void;
-    branches: string[];
+    onSave: (doctor: {
+        name: string;
+        specialty: string;
+        email: string;
+        phone: string;
+        status: DoctorStatus;
+        branchIds: string[];
+    }) => Promise<void>;
+    branches: DoctorBranchOption[];
 }) {
     const [name, setName] = useState("");
     const [specialty, setSpecialty] = useState("");
     const [email, setEmail] = useState("");
     const [phone, setPhone] = useState("");
-    const [status, setStatus] =
-        useState<DoctorTableItem["status"]>("Active");
+    const [status, setStatus] = useState<DoctorStatus>("Active");
     const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
     const [error, setError] = useState("");
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        if (open) setError("");
+    }, [open]);
 
     if (!open) return null;
 
-    function toggleBranch(branch: string) {
+    function toggleBranch(branchId: string) {
         setSelectedBranches((current) =>
-            current.includes(branch)
-                ? current.filter((item) => item !== branch)
-                : [...current, branch],
+            current.includes(branchId)
+                ? current.filter((id) => id !== branchId)
+                : [...current, branchId],
         );
     }
 
-    function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
+        setError("");
 
-        if (!name.trim() || !specialty.trim() || !email.trim() || !phone.trim()) {
+        if (
+            !name.trim() ||
+            !specialty.trim() ||
+            !email.trim() ||
+            !phone.trim()
+        ) {
             setError("Please complete all required fields.");
             return;
         }
 
-        const doctor: DoctorTableItem = {
-            id: `doctor-${crypto.randomUUID()}`,
-            name: name.trim(),
-            specialty: specialty.trim(),
-            email: email.trim(),
-            phone: phone.trim(),
-            status,
-            branches: selectedBranches,
-        };
+        setSaving(true);
 
-        onSave(doctor);
+        try {
+            await onSave({
+                name: name.trim(),
+                specialty: specialty.trim(),
+                email: email.trim(),
+                phone: phone.trim(),
+                status,
+                branchIds: selectedBranches,
+            });
 
-        setName("");
-        setSpecialty("");
-        setEmail("");
-        setPhone("");
-        setStatus("Active");
-        setSelectedBranches([]);
-        setError("");
-        onClose();
+            setName("");
+            setSpecialty("");
+            setEmail("");
+            setPhone("");
+            setStatus("Active");
+            setSelectedBranches([]);
+            setError("");
+            onClose();
+        } catch (err) {
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : "Unable to save the doctor.",
+            );
+        } finally {
+            setSaving(false);
+        }
     }
 
     const inputClass =
@@ -188,7 +165,7 @@ function AddDoctorModal({
         <div
             className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm"
             onMouseDown={(event) => {
-                if (event.target === event.currentTarget) onClose();
+                if (event.target === event.currentTarget && !saving) onClose();
             }}
         >
             <div
@@ -213,8 +190,9 @@ function AddDoctorModal({
                     <button
                         type="button"
                         onClick={onClose}
+                        disabled={saving}
                         aria-label="Close modal"
-                        className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                        className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
                     >
                         <X className="h-5 w-5" />
                     </button>
@@ -306,9 +284,7 @@ function AddDoctorModal({
                                 id="doctor-status"
                                 value={status}
                                 onChange={(event) =>
-                                    setStatus(
-                                        event.target.value as DoctorTableItem["status"],
-                                    )
+                                    setStatus(event.target.value as DoctorStatus)
                                 }
                                 className={inputClass}
                             >
@@ -322,30 +298,39 @@ function AddDoctorModal({
                                 Branch assignments
                             </p>
                             <p className="mb-3 text-xs text-slate-500">
-                                Select the branches where this doctor works. You can leave
-                                this empty and assign branches later.
+                                Select the branches where this doctor works. You can
+                                assign branches later if needed.
                             </p>
 
-                            <div className="grid gap-2 sm:grid-cols-2">
-                                {branches.map((branch) => (
-                                    <label
-                                        key={branch}
-                                        className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm text-slate-700 transition hover:border-[#82A995] hover:bg-[#F7F9F6]"
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedBranches.includes(branch)}
-                                            onChange={() => toggleBranch(branch)}
-                                            className="h-4 w-4 accent-[#176B55]"
-                                        />
-                                        {branch}
-                                    </label>
-                                ))}
-                            </div>
+                            {branches.length === 0 ? (
+                                <p className="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-500">
+                                    No active branches available.
+                                </p>
+                            ) : (
+                                <div className="grid gap-2 sm:grid-cols-2">
+                                    {branches.map((branch) => (
+                                        <label
+                                            key={branch.id}
+                                            className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm text-slate-700 transition hover:border-[#82A995] hover:bg-[#F7F9F6]"
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedBranches.includes(branch.id)}
+                                                onChange={() => toggleBranch(branch.id)}
+                                                className="h-4 w-4 accent-[#176B55]"
+                                            />
+                                            {branch.name}
+                                        </label>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         {error && (
-                            <p role="alert" className="text-sm font-medium text-red-600">
+                            <p
+                                role="alert"
+                                className="text-sm font-medium text-red-600"
+                            >
                                 {error}
                             </p>
                         )}
@@ -355,16 +340,18 @@ function AddDoctorModal({
                         <button
                             type="button"
                             onClick={onClose}
-                            className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                            disabled={saving}
+                            className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
                         >
                             Cancel
                         </button>
 
                         <button
                             type="submit"
-                            className="inline-flex items-center gap-2 rounded-xl bg-[#176B55] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#125744] focus:outline-none focus:ring-4 focus:ring-[#DDF3E7]"
+                            disabled={saving}
+                            className="inline-flex items-center gap-2 rounded-xl bg-[#176B55] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#125744] focus:outline-none focus:ring-4 focus:ring-[#DDF3E7] disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                            Save
+                            {saving ? "Saving..." : "Save"}
                         </button>
                     </div>
                 </form>
@@ -376,9 +363,40 @@ function AddDoctorModal({
 export default function DoctorsPage() {
     const router = useRouter();
 
-    const [doctors, setDoctors] =
-        useState<DoctorTableItem[]>(initialDoctors);
+    const [doctors, setDoctors] = useState<DoctorTableItem[]>([]);
+    const [branches, setBranches] = useState<DoctorBranchOption[]>([]);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [doctorToDelete, setDoctorToDelete] =
+        useState<DoctorTableItem | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [pageError, setPageError] = useState("");
+    const [toast, setToast] = useState("");
+
+    const loadData = useCallback(async () => {
+        setIsLoading(true);
+        setPageError("");
+
+        try {
+            const [doctorData, branchData] = await Promise.all([
+                getDoctors(),
+                getDoctorBranchOptions(),
+            ]);
+
+            setDoctors(doctorData);
+            setBranches(branchData);
+        } catch (err) {
+            setPageError(
+                err instanceof Error ? err.message : "Unable to load doctors.",
+            );
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        void loadData();
+    }, [loadData]);
 
     const metrics = useMemo(() => {
         const active = doctors.filter(
@@ -401,34 +419,90 @@ export default function DoctorsPage() {
         };
     }, [doctors]);
 
+    async function handleAddDoctor(input: {
+        name: string;
+        specialty: string;
+        email: string;
+        phone: string;
+        status: DoctorStatus;
+        branchIds: string[];
+    }) {
+        await createDoctor(input);
+
+        // Refresh the table after a successful database insert.
+        const doctorData = await getDoctors();
+        setDoctors(doctorData);
+        setToast("Doctor added successfully.");
+    }
+
     function handleEditDoctor(doctor: DoctorTableItem) {
+        // Edit is the only action that redirects to another page.
         router.push(`/doctors/${doctor.id}/edit`);
     }
 
-    function handleDeleteDoctor(doctor: DoctorTableItem) {
-        const confirmed = window.confirm(
-            `Are you sure you want to deactivate ${doctor.name}?`,
-        );
+    async function handleConfirmDelete() {
+        if (!doctorToDelete) return;
 
-        if (!confirmed) return;
+        setIsDeleting(true);
+        setPageError("");
 
-        // Demo only: update local state.
-        // Replace with an API/database update when connected.
-        setDoctors((current) =>
-            current.map((item) =>
-                item.id === doctor.id
-                    ? { ...item, status: "Inactive" }
-                    : item,
-            ),
-        );
+        try {
+            await deleteDoctor(doctorToDelete.id);
+
+            setDoctors((current) =>
+                current.filter((doctor) => doctor.id !== doctorToDelete.id),
+            );
+
+            setToast("Doctor deleted successfully.");
+            setDoctorToDelete(null);
+        } catch (err) {
+            setPageError(
+                err instanceof Error ? err.message : "Unable to delete the doctor.",
+            );
+        } finally {
+            setIsDeleting(false);
+        }
     }
 
     return (
         <div className="mx-auto space-y-7 pb-10">
-            {/* Summary metrics */}
+            {toast && (
+                <div
+                    role="status"
+                    className="fixed right-4 top-4 z-[120] flex max-w-sm items-center gap-3 rounded-xl bg-[#173F35] px-4 py-3 text-sm font-medium text-white shadow-lg"
+                >
+                    <span>{toast}</span>
+                    <button
+                        type="button"
+                        onClick={() => setToast("")}
+                        aria-label="Dismiss notification"
+                        className="rounded-md p-1 text-white/80 hover:bg-white/10 hover:text-white"
+                    >
+                        <X className="h-4 w-4" />
+                    </button>
+                </div>
+            )}
+
+            {pageError && (
+                <div
+                    role="alert"
+                    className="flex items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                >
+                    <span>{pageError}</span>
+                    <button
+                        type="button"
+                        onClick={() => setPageError("")}
+                        aria-label="Dismiss error"
+                        className="rounded-md p-1 hover:bg-red-100"
+                    >
+                        <X className="h-4 w-4" />
+                    </button>
+                </div>
+            )}
+
             <section
                 aria-label="Doctor statistics"
-                className="grid gap-4 grid-cols-2 xl:grid-cols-4"
+                className="grid grid-cols-2 gap-4 xl:grid-cols-4"
             >
                 <MetricCard
                     title="Total doctors"
@@ -463,31 +537,43 @@ export default function DoctorsPage() {
                 />
             </section>
 
-            {/* Doctors table */}
             <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-                <DoctorsTable
-                    doctors={doctors}
-                    showBranch
-                    title="All doctors"
-                    description="Search doctors and manage their profiles and assignments."
-                    emptyMessage="No doctors found. Add your first doctor to get started."
-                    onDoctorEdit={handleEditDoctor}
-                    onDoctorDelete={handleDeleteDoctor}
-                    onDoctorAdd={() => setIsAddModalOpen(true)}
-                />
+                {isLoading ? (
+                    <div className="p-8 text-center text-sm text-slate-500">
+                        Loading doctors...
+                    </div>
+                ) : (
+                    <DoctorsTable
+                        doctors={doctors}
+                        showBranch
+                        title="All doctors"
+                        description="Search doctors and manage their profiles and assignments."
+                        emptyMessage="No doctors found. Add your first doctor to get started."
+                        onDoctorEdit={handleEditDoctor}
+                        onDoctorDelete={(doctor) => setDoctorToDelete(doctor)}
+                        onDoctorAdd={() => setIsAddModalOpen(true)}
+                    />
+                )}
             </section>
 
             <AddDoctorModal
                 open={isAddModalOpen}
                 onClose={() => setIsAddModalOpen(false)}
-                branches={[
-                    "Cebu Branch",
-                    "Mandaue Branch",
-                    "Lapu-Lapu Branch",
-                ]}
-                onSave={(doctor) => {
-                    setDoctors((current) => [...current, doctor]);
+                branches={branches}
+                onSave={handleAddDoctor}
+            />
+
+            <DeleteConfirmModal
+                open={Boolean(doctorToDelete)}
+                title="Delete doctor?"
+                description="This will permanently delete this doctor's profile and related branch, working-hours, and service assignments. This action cannot be undone."
+                itemName={doctorToDelete?.name}
+                confirmLabel="Delete doctor"
+                loading={isDeleting}
+                onClose={() => {
+                    if (!isDeleting) setDoctorToDelete(null);
                 }}
+                onConfirm={handleConfirmDelete}
             />
         </div>
     );

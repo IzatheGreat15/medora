@@ -33,6 +33,7 @@ import {
   updateBranch,
   type BranchStatus,
 } from "../../actions";
+import Toast from "@/components/shared/Toast";
 
 type BranchForm = {
   id: string;
@@ -149,7 +150,7 @@ function EditBranchForm() {
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [savedMessage, setSavedMessage] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
+  const [messageType, setMessageType] = useState<"success" | "error">("success");
 
   const doctors = useMemo(() => {
     if (!form) return [];
@@ -160,7 +161,7 @@ function EditBranchForm() {
 
   const loadBranch = useCallback(async () => {
     setIsLoading(true);
-    setErrorMessage("");
+    setSavedMessage("");
 
     try {
       const branch = await getBranchById(branchId);
@@ -190,7 +191,8 @@ function EditBranchForm() {
       });
     } catch (error) {
       console.error("Failed to load branch:", error);
-      setErrorMessage(
+      setMessageType("error");
+      setSavedMessage(
         error instanceof Error
           ? error.message
           : "Unable to load branch details."
@@ -212,7 +214,6 @@ function EditBranchForm() {
       current ? { ...current, [key]: value } : current
     );
     setSavedMessage("");
-    setErrorMessage("");
   }
 
   async function handleSave(event: FormEvent<HTMLFormElement>) {
@@ -222,7 +223,6 @@ function EditBranchForm() {
 
     setIsSaving(true);
     setSavedMessage("");
-    setErrorMessage("");
 
     try {
       await updateBranch(form.id, {
@@ -234,11 +234,12 @@ function EditBranchForm() {
         status: form.status,
         openingHours: form.openingHours,
       });
-
+      setMessageType('success');
       setSavedMessage("Branch details saved successfully.");
     } catch (error) {
       console.error("Failed to save branch:", error);
-      setErrorMessage(
+      setMessageType('error');
+      setSavedMessage(
         error instanceof Error
           ? error.message
           : "Unable to save branch changes."
@@ -273,7 +274,6 @@ function EditBranchForm() {
     });
 
     setSavedMessage("");
-    setErrorMessage("");
   }
 
   if (isLoading) {
@@ -292,8 +292,8 @@ function EditBranchForm() {
         <h2 className="mt-3 text-xl font-bold text-[#173F35]">
           Branch not found
         </h2>
-        {errorMessage && (
-          <p className="mt-2 text-sm text-red-600">{errorMessage}</p>
+        {savedMessage && (
+          <p className="mt-2 text-sm text-red-600">{savedMessage}</p>
         )}
         <button
           onClick={() => router.push("/branches")}
@@ -308,30 +308,11 @@ function EditBranchForm() {
   return (
     <div className="mx-auto space-y-6 pb-10">
       {savedMessage && (
-        <div
-          role="status"
-          className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800"
-        >
-          <Check className="h-4 w-4" />
-          {savedMessage}
-        </div>
-      )}
-
-      {errorMessage && (
-        <div
-          role="alert"
-          className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-        >
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-          <span className="flex-1">{errorMessage}</span>
-          <button
-            type="button"
-            onClick={() => setErrorMessage("")}
-            aria-label="Dismiss error"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+        <Toast
+          message={savedMessage}
+          type={messageType}
+          onClose={() => setSavedMessage("")}
+        />
       )}
 
       <form
