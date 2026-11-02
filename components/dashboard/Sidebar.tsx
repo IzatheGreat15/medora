@@ -44,19 +44,6 @@ const mainNavigation = [
   },
 ];
 
-const bottomNavigation = [
-  {
-    label: "Settings",
-    href: "/settings",
-    icon: Settings,
-  },
-  {
-    label: "Help & support",
-    href: "/help",
-    icon: HelpCircle,
-  },
-];
-
 type DashboardSidebarProps = {
   staff: DashboardStaff;
   collapsed: boolean;
@@ -72,6 +59,24 @@ export default function DashboardSidebar({
 }: DashboardSidebarProps) {
   const pathname = usePathname();
   const clinicName = staff.clinic_name;
+
+  const bottomNavigation = [
+    {
+      label: "Settings",
+      href: "/settings",
+      icon: Settings,
+    },
+    {
+      label: "Help & support",
+      href: "/help",
+      icon: HelpCircle,
+    },
+    {
+      label: "Book An Appointment",
+      href: `/book-an-appointment?clinic=${staff.clinic_id}`,
+      icon: CalendarDays,
+    },
+  ];
 
   function isActive(href: string) {
     if (href === "/dashboard") {

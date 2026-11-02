@@ -31,6 +31,7 @@ type SubscriptionPlan = {
 type Clinic = {
   id: string;
   name: string;
+  logoUrl: string|null;
   email: string;
   phone: string;
   planId: string;
@@ -468,8 +469,16 @@ export default function ClinicsPage() {
                       >
                         <td className="px-6 py-5">
                           <div className="flex items-center gap-3">
-                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#DDF3E7] text-[#176B55]">
-                              <Building2 size={21} strokeWidth={1.8} />
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#DDF3E7] text-[#176B55]">
+                              {clinic.logoUrl ? (
+                                <img
+                                  src={clinic.logoUrl}
+                                  alt={`${clinic.name} logo`}
+                                  className="h-10 w-10 object-contain"
+                                />
+                              ) : (
+                                <Building2 size={21} strokeWidth={1.8} />
+                              )}
                             </div>
 
                             <div>

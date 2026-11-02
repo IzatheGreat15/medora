@@ -1,13 +1,7 @@
-
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  ArrowLeft,
-  ArrowRight,
-  CalendarCheck2,
-} from "lucide-react";
-
+import { ArrowLeft, ArrowRight, CalendarCheck2, HeartPulse } from "lucide-react";
 import BookingProgress from "./BookingProgress";
 import BookingSummary from "./BookingSummary";
 import BranchStep from "./steps/BranchStep";
@@ -16,13 +10,11 @@ import DoctorStep from "./steps/DoctorStep";
 import DateTimeStep from "./steps/DateTimeStep";
 import PatientDetailsStep from "./steps/PatientDetailsStep";
 import ReviewStep from "./steps/ReviewStep";
-
 import {
   createPublicBooking,
   getAvailableBookingSlots,
   type BookingOptions,
 } from "@/app/book-an-appointment/actions";
-
 import type { BookingState } from "@/lib/booking/types";
 
 const initialState: BookingState = {
@@ -55,17 +47,9 @@ export default function BookingWizard({
   const services = options.services;
   const doctors = options.doctors;
 
-  const branch = branches.find(
-    (item) => item.id === booking.branchId,
-  );
-
-  const selectedService = services.find(
-    (item) => item.id === booking.serviceId,
-  );
-
-  const doctor = doctors.find(
-    (item) => item.id === booking.doctorId,
-  );
+  const branch = branches.find((item) => item.id === booking.branchId);
+  const selectedService = services.find((item) => item.id === booking.serviceId);
+  const doctor = doctors.find((item) => item.id === booking.doctorId);
 
   // Only show services offered by a doctor at the selected branch.
   const availableServices = useMemo(() => {
@@ -107,8 +91,7 @@ export default function BookingWizard({
         ...selectedService,
         price: doctorService?.price ?? selectedService.price,
         durationMinutes:
-          doctorService?.durationMinutes ??
-          selectedService.durationMinutes,
+          doctorService?.durationMinutes ?? selectedService.durationMinutes,
       }
     : undefined;
 
@@ -156,9 +139,7 @@ export default function BookingWizard({
     if (step === 5) {
       return Boolean(
         booking.patient.fullName.trim() &&
-          /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-            booking.patient.email.trim(),
-          ) &&
+          /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(booking.patient.email.trim()) &&
           booking.patient.phone.trim(),
       );
     }
@@ -223,32 +204,23 @@ export default function BookingWizard({
           </h1>
 
           <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-slate-500 sm:text-base">
-            Thank you for booking with {options.clinicName}.
-            Your appointment request has been submitted and is
-            awaiting confirmation from the clinic.
+            Thank you for booking with {options.clinicName}. Your appointment
+            request has been submitted and is awaiting confirmation from the
+            clinic.
           </p>
 
           <div className="mt-7 space-y-2 rounded-2xl border border-slate-100 bg-[#F7F9F6] p-5 text-left">
-            <p className="font-semibold text-slate-900">
-              {service?.name}
-            </p>
-
+            <p className="font-semibold text-slate-900">{service?.name}</p>
             <p className="text-sm text-slate-600">
               {branch?.name} · {doctor?.name}
             </p>
-
             <p className="text-sm text-slate-600">
               {booking.date} · {booking.time}
             </p>
-
             <p className="text-sm text-slate-600">
               Patient: {booking.patient.fullName}
             </p>
-
-            <p className="text-sm text-slate-600">
-              Reference: {bookingId}
-            </p>
-
+            <p className="text-sm text-slate-600">Reference: {bookingId}</p>
             <p className="mt-3 inline-flex rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
               Pending approval
             </p>
@@ -272,17 +244,24 @@ export default function BookingWizard({
         <header className="flex flex-col gap-3 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <a
             href="/"
-            className="flex w-fit items-center gap-2.5 rounded-lg text-lg font-bold tracking-tight text-[#173F35]"
+            className="flex min-w-0 items-center gap-3 rounded-lg text-lg font-bold tracking-tight text-[#173F35]"
           >
-            <img
-              src="/full-logo.webp"
-              alt="Medora"
-              className="w-36"
-            />
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-white">
+              {options.clinicLogoUrl ? (
+                <img
+                  src={options.clinicLogoUrl}
+                  alt={`${options.clinicName} logo`}
+                  className="h-full w-full object-contain"
+                />
+              ) : (
+                <HeartPulse size={22} className="text-[#176B55]" />
+              )}
+            </span>
+            <span className="truncate">{options.clinicName}</span>
           </a>
 
           <p className="text-sm font-medium text-slate-500">
-            Booking with {options.clinicName}
+            Book your appointment online
           </p>
         </header>
 
@@ -331,9 +310,7 @@ export default function BookingWizard({
                 doctorId={booking.doctorId}
                 date={booking.date}
                 time={booking.time}
-                onDateChange={(date) =>
-                  update({ date, time: "" })
-                }
+                onDateChange={(date) => update({ date, time: "" })}
                 onTimeChange={(time) => update({ time })}
                 getAvailableSlots={getAvailableBookingSlots}
               />
@@ -389,7 +366,6 @@ export default function BookingWizard({
                     : step === 5
                       ? "Review booking"
                       : "Continue"}
-
                 {!isSubmitting && <ArrowRight size={16} />}
               </button>
             </div>
@@ -415,7 +391,6 @@ export default function BookingWizard({
 
         <footer className="flex w-full justify-center gap-2 border-t border-slate-100 px-5 py-4 text-center text-xs text-slate-400">
           Appointment booking made simple · Powered by
-
           <img
             src="/full-logo.webp"
             alt="Medora"

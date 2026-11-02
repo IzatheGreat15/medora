@@ -42,6 +42,7 @@ export type BookingDoctorOption = {
 export type BookingOptions = {
   clinicId: string;
   clinicName: string;
+  clinicLogoUrl: string;
   branches: BookingBranchOption[];
   services: BookingServiceOption[];
   doctors: BookingDoctorOption[];
@@ -272,7 +273,7 @@ export async function getPublicBookingOptions(
 
   const { data: clinic, error: clinicError } = await supabase
     .from("clinics")
-    .select("id, name, status")
+    .select("id, name, status, logo_url")
     .eq("id", clinicId)
     .maybeSingle();
 
@@ -454,6 +455,7 @@ export async function getPublicBookingOptions(
   return {
     clinicId: clinic.id,
     clinicName: clinic.name,
+    clinicLogoUrl: clinic.logo_url,
     branches,
     services,
     doctors,

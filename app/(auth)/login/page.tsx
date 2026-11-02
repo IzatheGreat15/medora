@@ -6,7 +6,7 @@ import Link from "next/link";
 const errorMessages: Record<string, string> = {
   invalid_input: "Please enter your email address and password.",
   invalid_credentials: "Invalid email or password. Please try again.",
-  unauthorized: "You don't have permission to access the admin platform.",
+  unauthorized: "You don't have permission to access the platform. Please contact Medora team for more details.",
 };
 
 type LoginPageProps = {

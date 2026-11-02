@@ -23,6 +23,11 @@ import {
 } from "lucide-react";
 import StaffSection from "@/components/settings/StaffSection";
 import { ClinicSubscription, getClinicSubscription } from "@/components/settings/actions";
+import {
+  getClinicSettings,
+  saveClinicSettings,
+  type ClinicNotificationPreference,
+} from "@/components/settings/settings-data-actions";
 
 type NotificationEvent = {
   id: string;
@@ -83,8 +88,12 @@ const reminderOptions = [
 ];
 
 export default function SettingsPage() {
-  const [clinicName, setClinicName] = useState("Medora Family Clinic");
+  const [clinicName, setClinicName] = useState("");
   const [logo, setLogo] = useState("");
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [removeLogo, setRemoveLogo] = useState(false);
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+  const [settingsError, setSettingsError] = useState("");
   const [notifications, setNotifications] =
     useState<NotificationEvent[]>(initialNotifications);
   const [reminderDays, setReminderDays] = useState(1);
@@ -102,6 +111,41 @@ export default function SettingsPage() {
 
   const [subscriptionError, setSubscriptionError] =
     useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadSettings() {
+      try {
+        const data = await getClinicSettings();
+        if (!active) return;
+
+        setClinicName(data.clinicName);
+        setLogo(data.logo ?? "");
+        setNotifications((current) =>
+          current.map((item) => ({
+            ...item,
+            email: data.notifications[item.id] ?? item.email,
+          })),
+        );
+        setReminderDays(data.reminderDays);
+      } catch (error) {
+        console.error("Failed to load clinic settings:", error);
+        if (active) {
+          setSettingsError(
+            error instanceof Error ? error.message : "Failed to load clinic settings.",
+          );
+        }
+      } finally {
+        if (active) setIsLoadingSettings(false);
+      }
+    }
+
+    loadSettings();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     async function loadSubscription() {
@@ -158,6 +202,8 @@ export default function SettingsPage() {
 
     const previewUrl = URL.createObjectURL(file);
     setLogo(previewUrl);
+    setLogoFile(file);
+    setRemoveLogo(false);
     setMessage("");
   }
 
@@ -175,16 +221,30 @@ export default function SettingsPage() {
   async function handleSave() {
     setIsSaving(true);
     setMessage("");
+    setSettingsError("");
 
     try {
-      // TODO: Persist clinic information, logo, notification preferences,
-      // and reminderDays to Supabase.
-      // Upload the selected logo to Supabase Storage before saving its URL.
+      const preferences: ClinicNotificationPreference = Object.fromEntries(
+        notifications.map((item) => [item.id, item.email]),
+      );
 
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      const result = await saveClinicSettings({
+        clinicName,
+        notifications: preferences,
+        reminderDays,
+        logoFile,
+        removeLogo,
+      });
 
-      setMessage(
-        "Changes are ready in this preview. Connect Supabase to save them permanently.",
+      setLogo(result.logo ?? "");
+      setLogoFile(null);
+      setRemoveLogo(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      setMessage("Your clinic settings have been saved.");
+    } catch (error) {
+      console.error("Failed to save clinic settings:", error);
+      setSettingsError(
+        error instanceof Error ? error.message : "Failed to save clinic settings.",
       );
     } finally {
       setIsSaving(false);
@@ -207,7 +267,7 @@ export default function SettingsPage() {
         <button
           type="button"
           onClick={handleSave}
-          disabled={isSaving}
+          disabled={isSaving || isLoadingSettings}
           className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#176B55] px-5 text-sm font-semibold text-white transition hover:bg-[#173F35] disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Save size={17} />
@@ -223,6 +283,19 @@ export default function SettingsPage() {
           <Check size={18} className="mt-0.5 shrink-0" />
           <p>{message}</p>
         </div>
+      )}
+
+      {settingsError && (
+        <div
+          role="alert"
+          className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+        >
+          {settingsError}
+        </div>
+      )}
+
+      {isLoadingSettings && (
+        <p className="text-sm text-slate-500">Loading clinic settings...</p>
       )}
 
       {/* Clinic information */}
@@ -292,6 +365,8 @@ export default function SettingsPage() {
                     type="button"
                     onClick={() => {
                       setLogo("");
+                      setLogoFile(null);
+                      setRemoveLogo(true);
                       if (fileInputRef.current) {
                         fileInputRef.current.value = "";
                       }

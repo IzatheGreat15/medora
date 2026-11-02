@@ -89,6 +89,37 @@ export async function GET() {
             ownerStaff.map((person) => person.id),
         );
 
+        const clinicIds = (clinics ?? []).map((clinic) => clinic.id);
+
+        const [doctorsResult, branchesResult] = await Promise.all([
+            clinicIds.length
+                ? admin.from("doctors").select("clinic_id").in("clinic_id", clinicIds)
+                : Promise.resolve({ data: [], error: null }),
+            clinicIds.length
+                ? admin.from("branches").select("clinic_id").in("clinic_id", clinicIds)
+                : Promise.resolve({ data: [], error: null }),
+        ]);
+
+        if (doctorsResult.error) throw new Error(doctorsResult.error.message);
+        if (branchesResult.error) throw new Error(branchesResult.error.message);
+
+        const doctorCounts = new Map<string, number>();
+        const branchCounts = new Map<string, number>();
+
+        for (const doctor of doctorsResult.data ?? []) {
+            doctorCounts.set(
+                doctor.clinic_id,
+                (doctorCounts.get(doctor.clinic_id) ?? 0) + 1,
+            );
+        }
+
+        for (const branch of branchesResult.data ?? []) {
+            branchCounts.set(
+                branch.clinic_id,
+                (branchCounts.get(branch.clinic_id) ?? 0) + 1,
+            );
+        }
+
         const result = (clinics ?? []).map((clinic) => {
             const owner = ownerStaff.find(
                 (person) => person.clinic_id === clinic.id,
@@ -98,14 +129,15 @@ export async function GET() {
                 id: clinic.id,
                 name: clinic.name,
                 email: clinic.contact_email,
+                logoUrl: clinic.logo_url,
                 phone: clinic.phone ?? "",
                 planId: clinic.subscription_plan_id ?? "",
                 status: reverseStatusMap[clinic.status] ?? "Inactive",
                 trialEndsAt: clinic.trial_ends_at
                     ? String(clinic.trial_ends_at).slice(0, 10)
                     : "",
-                doctorCount: 0,
-                branchCount: 0,
+                doctorCount: doctorCounts.get(clinic.id) ?? 0,
+                branchCount: branchCounts.get(clinic.id) ?? 0,
                 administrator: {
                     firstName: owner?.first_name ?? "",
                     lastName: owner?.last_name ?? "",
