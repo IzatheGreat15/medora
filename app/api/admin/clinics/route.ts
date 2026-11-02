@@ -229,8 +229,6 @@ export async function POST(request: NextRequest) {
         clinicId = clinic.id;
 
         if (sendInvitation) {
-
-            // UPDATE THIS!!!
             const temporaryPassword = `${crypto.randomUUID()}-Aa1!`;
 
             const { data: createdUser, error: createUserError } =

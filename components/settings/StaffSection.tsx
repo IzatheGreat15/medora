@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Check,
   ChevronDown,
@@ -17,40 +17,26 @@ import {
   X,
 } from "lucide-react";
 
+import {
+  getClinicStaff,
+  createClinicStaff,
+  updateClinicStaff,
+  updateClinicStaffStatus,
+  deleteClinicStaff,
+  type ClinicStaffMember,
+} from "./actions";
+
 type StaffStatus = "Active" | "Inactive";
-
-type StaffMember = {
-  id: string;
-  name: string;
-  email: string;
-  status: StaffStatus;
-};
-
-const initialStaff: StaffMember[] = [
-  {
-    id: "staff-1",
-    name: "Jane Doe",
-    email: "jane@example.com",
-    status: "Active",
-  },
-  {
-    id: "staff-2",
-    name: "Michael Santos",
-    email: "michael@example.com",
-    status: "Active",
-  },
-  {
-    id: "staff-3",
-    name: "Sarah Reyes",
-    email: "sarah@example.com",
-    status: "Inactive",
-  },
-];
+type StaffMember = ClinicStaffMember;
 
 export default function StaffSection() {
-  const [staff, setStaff] = useState<StaffMember[]>(initialStaff);
+  const [staff, setStaff] = useState<StaffMember[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All statuses");
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
@@ -59,6 +45,32 @@ export default function StaffSection() {
   const [email, setEmail] = useState("");
   const [formError, setFormError] = useState("");
   const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"success" | "error">("success");
+
+  const loadStaff = useCallback(async () => {
+    setIsLoading(true);
+
+    try {
+      const result = await getClinicStaff();
+      setStaff(result);
+    } catch (error) {
+      console.error("Failed to load clinic staff:", error);
+
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong while loading staff.",
+      );
+
+      setMessageType("error");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadStaff();
+  }, [loadStaff]);
 
   const filteredStaff = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -76,6 +88,14 @@ export default function StaffSection() {
       return matchesSearch && matchesStatus;
     });
   }, [staff, search, statusFilter]);
+
+  function showMessage(
+    text: string,
+    type: "success" | "error" = "success",
+  ) {
+    setMessage(text);
+    setMessageType(type);
+  }
 
   function openAddModal() {
     setEditingStaff(null);
@@ -96,6 +116,8 @@ export default function StaffSection() {
   }
 
   function closeModal() {
+    if (isSaving) return;
+
     setIsModalOpen(false);
     setEditingStaff(null);
     setName("");
@@ -103,7 +125,9 @@ export default function StaffSection() {
     setFormError("");
   }
 
-  function handleSaveStaff(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSaveStaff(
+    event: React.FormEvent<HTMLFormElement>,
+  ) {
     event.preventDefault();
     setFormError("");
     setMessage("");
@@ -127,68 +151,141 @@ export default function StaffSection() {
       return;
     }
 
-    if (editingStaff) {
-      setStaff((current) =>
-        current.map((member) =>
-          member.id === editingStaff.id
-            ? {
-                ...member,
-                name: cleanName,
-                email: cleanEmail,
-              }
-            : member,
-        ),
-      );
+    setIsSaving(true);
 
-      setMessage(`${cleanName}'s details were updated in this preview.`);
-    } else {
-      setStaff((current) => [
-        ...current,
-        {
-          id: crypto.randomUUID(),
+    try {
+      if (editingStaff) {
+        const result = await updateClinicStaff({
+          id: editingStaff.id,
           name: cleanName,
           email: cleanEmail,
-          status: "Active",
-        },
-      ]);
+        });
 
-      setMessage(
-        `${cleanName} was added to this preview. Authentication and invitations are not yet connected.`,
+        if (!result.success) {
+          throw new Error(result.message || "Failed to update staff member.");
+        }
+
+        setIsModalOpen(false);
+        setEditingStaff(null);
+        setName("");
+        setEmail("");
+
+        showMessage(result.message || `${cleanName}'s details were updated.`);
+
+        await loadStaff();
+      } else {
+        const result = await createClinicStaff({
+          name: cleanName,
+          email: cleanEmail,
+        });
+
+        if (!result.success) {
+          throw new Error(result.message || "Failed to create staff member.");
+        }
+
+        setIsModalOpen(false);
+        setEditingStaff(null);
+        setName("");
+        setEmail("");
+
+        showMessage(
+          result.warning ||
+            result.message ||
+            `${cleanName} was added successfully. An invitation email will be sent.`,
+        );
+
+        await loadStaff();
+      }
+    } catch (error) {
+      console.error("Failed to save staff member:", error);
+
+      setFormError(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong. Please try again.",
       );
+    } finally {
+      setIsSaving(false);
     }
-
-    closeModal();
   }
 
-  function toggleStatus(member: StaffMember) {
+  async function toggleStatus(member: StaffMember) {
     const nextStatus: StaffStatus =
       member.status === "Active" ? "Inactive" : "Active";
 
-    setStaff((current) =>
-      current.map((item) =>
-        item.id === member.id
-          ? { ...item, status: nextStatus }
-          : item,
-      ),
-    );
+    const action = nextStatus === "Inactive" ? "deactivate" : "activate";
 
-    setMessage(
-      `${member.name} was marked ${nextStatus.toLowerCase()} in this preview.`,
-    );
-  }
-
-  function handleDeleteStaff(member: StaffMember) {
     const confirmed = window.confirm(
-      `Are you sure you want to delete ${member.name}? This action cannot be undone.`,
+      `Are you sure you want to ${action} ${member.name}?`,
     );
 
     if (!confirmed) return;
 
-    setStaff((current) =>
-      current.filter((item) => item.id !== member.id),
+    setProcessingId(member.id);
+    setMessage("");
+
+    try {
+      const result = await updateClinicStaffStatus({
+        id: member.id,
+        status: nextStatus,
+      });
+
+      if (!result.success) {
+        throw new Error(result.message || `Failed to ${action} staff member.`);
+      }
+
+      showMessage(
+        result.message ||
+          `${member.name} was ${nextStatus === "Active" ? "activated" : "deactivated"} successfully.`,
+      );
+
+      await loadStaff();
+    } catch (error) {
+      console.error("Failed to update staff status:", error);
+
+      showMessage(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong while updating staff status.",
+        "error",
+      );
+    } finally {
+      setProcessingId(null);
+    }
+  }
+
+  async function handleDeleteStaff(member: StaffMember) {
+    const confirmed = window.confirm(
+      `Are you sure you want to permanently delete ${member.name}? This action cannot be undone.`,
     );
 
-    setMessage(`${member.name} was removed from this preview.`);
+    if (!confirmed) return;
+
+    setProcessingId(member.id);
+    setMessage("");
+
+    try {
+      const result = await deleteClinicStaff(member.id);
+
+      if (!result.success) {
+        throw new Error(result.message || "Failed to delete staff member.");
+      }
+
+      showMessage(result.message || `${member.name} was deleted successfully.`);
+
+      await loadStaff();
+    } catch (error) {
+      console.error("Failed to delete staff member:", error);
+
+      showMessage(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong while deleting staff.",
+        "error",
+      );
+    } finally {
+      setProcessingId(null);
+    }
   }
 
   return (
@@ -253,9 +350,7 @@ export default function StaffSection() {
               <div className="relative w-[112px] shrink-0 sm:w-36">
                 <select
                   value={statusFilter}
-                  onChange={(event) =>
-                    setStatusFilter(event.target.value)
-                  }
+                  onChange={(event) => setStatusFilter(event.target.value)}
                   aria-label="Filter staff by status"
                   className="h-10 w-full appearance-none rounded-xl border border-slate-200 bg-white py-2 pl-2 pr-7 text-xs text-slate-600 outline-none focus:border-[#82A995] sm:h-11 sm:pl-3 sm:pr-9 sm:text-sm"
                 >
@@ -276,15 +371,31 @@ export default function StaffSection() {
           {message && (
             <div
               role="status"
-              className="mt-4 flex items-start gap-2 rounded-xl border border-[#B9DCC8] bg-[#DDF3E7] p-3 text-sm text-[#173F35]"
+              className={`mt-4 flex items-start gap-2 rounded-xl border p-3 text-sm ${
+                messageType === "success"
+                  ? "border-[#B9DCC8] bg-[#DDF3E7] text-[#173F35]"
+                  : "border-red-200 bg-red-50 text-red-700"
+              }`}
             >
-              <Check size={17} className="mt-0.5 shrink-0" />
+              {messageType === "success" ? (
+                <Check size={17} className="mt-0.5 shrink-0" />
+              ) : (
+                <X size={17} className="mt-0.5 shrink-0" />
+              )}
               <p>{message}</p>
             </div>
           )}
 
-          {/* Staff table */}
-          {filteredStaff.length > 0 ? (
+          {/* Loading */}
+          {isLoading ? (
+            <div className="py-12 text-center">
+              <div className="mx-auto h-7 w-7 animate-spin rounded-full border-2 border-[#DDF3E7] border-t-[#176B55]" />
+              <p className="mt-3 text-sm text-slate-500">
+                Loading staff members...
+              </p>
+            </div>
+          ) : filteredStaff.length > 0 ? (
+            /* Staff table */
             <div className="mt-2 overflow-x-auto">
               <table className="w-full min-w-[560px] text-left">
                 <thead>
@@ -312,6 +423,8 @@ export default function StaffSection() {
                       .slice(0, 2)
                       .join("")
                       .toUpperCase();
+
+                    const isProcessing = processingId === member.id;
 
                     return (
                       <tr
@@ -368,16 +481,17 @@ export default function StaffSection() {
                           </span>
                         </td>
 
-                        {/* Icon-only actions */}
+                        {/* Actions */}
                         <td className="px-3 py-4">
                           <div className="flex items-center justify-end gap-1">
                             {/* Edit */}
                             <button
                               type="button"
                               onClick={() => openEditModal(member)}
+                              disabled={isProcessing}
                               aria-label={`Edit ${member.name}`}
                               title="Edit staff"
-                              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-[#DDF3E7] hover:text-[#176B55] focus:outline-none focus:ring-2 focus:ring-[#82A995]"
+                              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-[#DDF3E7] hover:text-[#176B55] focus:outline-none focus:ring-2 focus:ring-[#82A995] disabled:cursor-not-allowed disabled:opacity-40"
                             >
                               <Pencil size={16} />
                             </button>
@@ -386,6 +500,7 @@ export default function StaffSection() {
                             <button
                               type="button"
                               onClick={() => toggleStatus(member)}
+                              disabled={isProcessing}
                               aria-label={
                                 member.status === "Active"
                                   ? `Deactivate ${member.name}`
@@ -396,22 +511,27 @@ export default function StaffSection() {
                                   ? "Deactivate staff"
                                   : "Activate staff"
                               }
-                              className={`inline-flex h-9 w-9 items-center justify-center rounded-lg transition focus:outline-none focus:ring-2 focus:ring-[#82A995] ${
+                              className={`inline-flex h-9 w-9 items-center justify-center rounded-lg transition focus:outline-none focus:ring-2 focus:ring-[#82A995] disabled:cursor-not-allowed disabled:opacity-40 ${
                                 member.status === "Active"
                                   ? "text-amber-600 hover:bg-amber-50"
                                   : "text-[#176B55] hover:bg-[#DDF3E7]"
                               }`}
                             >
-                              <UserRoundX size={17} />
+                              {isProcessing ? (
+                                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                              ) : (
+                                <UserRoundX size={17} />
+                              )}
                             </button>
 
                             {/* Delete */}
                             <button
                               type="button"
                               onClick={() => handleDeleteStaff(member)}
+                              disabled={isProcessing}
                               aria-label={`Delete ${member.name}`}
                               title="Delete staff"
-                              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-200"
+                              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-200 disabled:cursor-not-allowed disabled:opacity-40"
                             >
                               <Trash2 size={16} />
                             </button>
@@ -435,12 +555,14 @@ export default function StaffSection() {
               </p>
 
               <p className="mt-1 text-sm text-slate-500">
-                Try another search or change the status filter.
+                {search || statusFilter !== "All statuses"
+                  ? "Try another search or change the status filter."
+                  : "Add your first staff member to get started."}
               </p>
             </div>
           )}
 
-          {/* Phase 1 permissions notice */}
+          {/* Permissions notice */}
           <div className="mt-4 flex items-start gap-2 rounded-xl bg-slate-50 p-3 text-xs leading-5 text-slate-500">
             <ShieldCheck size={16} className="mt-0.5 shrink-0" />
             <p>
@@ -457,7 +579,10 @@ export default function StaffSection() {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto mb-0 bg-black/40 p-4"
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget) {
+            if (
+              event.target === event.currentTarget &&
+              !isSaving
+            ) {
               closeModal();
             }
           }}
@@ -488,8 +613,9 @@ export default function StaffSection() {
               <button
                 type="button"
                 onClick={closeModal}
+                disabled={isSaving}
                 aria-label="Close modal"
-                className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 disabled:opacity-40"
               >
                 <X size={19} />
               </button>
@@ -514,7 +640,8 @@ export default function StaffSection() {
                     maxLength={120}
                     autoFocus
                     required
-                    className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#82A995] focus:ring-2 focus:ring-[#DDF3E7]"
+                    disabled={isSaving}
+                    className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#82A995] focus:ring-2 focus:ring-[#DDF3E7] disabled:bg-slate-50"
                   />
                 </div>
 
@@ -534,7 +661,8 @@ export default function StaffSection() {
                     placeholder="name@clinic.com"
                     maxLength={254}
                     required
-                    className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#82A995] focus:ring-2 focus:ring-[#DDF3E7]"
+                    disabled={isSaving}
+                    className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#82A995] focus:ring-2 focus:ring-[#DDF3E7] disabled:bg-slate-50"
                   />
                 </div>
 
@@ -544,8 +672,9 @@ export default function StaffSection() {
                     className="mt-0.5 shrink-0 text-[#176B55]"
                   />
                   <p>
-                    All active staff members have full access to clinic
-                    features.
+                    {editingStaff
+                      ? "Changes will be applied to this staff member's account."
+                      : "An account will be created and an email will be sent so this staff member can set their password."}
                   </p>
                 </div>
 
@@ -561,21 +690,30 @@ export default function StaffSection() {
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="h-10 rounded-xl border border-slate-200 px-4 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+                  disabled={isSaving}
+                  className="h-10 rounded-xl border border-slate-200 px-4 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Cancel
                 </button>
 
                 <button
                   type="submit"
-                  className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#176B55] px-4 text-sm font-semibold text-white transition hover:bg-[#173F35]"
+                  disabled={isSaving}
+                  className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#176B55] px-4 text-sm font-semibold text-white transition hover:bg-[#173F35] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {editingStaff ? (
+                  {isSaving ? (
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                  ) : editingStaff ? (
                     <Check size={16} />
                   ) : (
                     <Plus size={16} />
                   )}
-                  {editingStaff ? "Save changes" : "Add staff"}
+
+                  {isSaving
+                    ? "Saving..."
+                    : editingStaff
+                      ? "Save changes"
+                      : "Add staff"}
                 </button>
               </div>
             </form>
