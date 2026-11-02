@@ -31,6 +31,20 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
+
+type SubscriptionPlan = {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number | string;
+  billing_interval: string;
+  features: string[] | null;
+  max_doctors: number;
+  max_branches: number;
+  is_active: boolean;
+};
+
+
 const features = [
   {
     icon: CalendarCheck,
@@ -78,63 +92,6 @@ const steps = [
       "Review requests and keep your team and schedules organized.",
   },
 ];
-
-const plans = [
-  {
-    name: "Starter",
-    description: "Perfect for solo doctors and small clinics.",
-    price: "₱999",
-    period: "/ month",
-    highlighted: true,
-    features: [
-      "1 doctor",
-      "1 branch",
-      "Unlimited appointments",
-      "Online booking page",
-      "Appointment management",
-      "Ongoing Support",
-    ],
-    cta: "Get started",
-    href: "/signup",
-  },
-  {
-    name: "Professional",
-    description: "For clinics with growing teams.",
-    price: "₱1,999",
-    period: "/ month",
-    highlighted: false,
-    features: [
-      "Up to 3 doctors",
-      "1 branch",
-      "Unlimited appointments",
-      "Online booking page",
-      "Centralized scheduling",
-      "Doctor management",
-      "Ongoing Support",
-    ],
-    cta: "Get started",
-    href: "/signup",
-  },
-  {
-    name: "Clinic Plus",
-    description: "For established clinics managing multiple locations.",
-    price: "₱2,999",
-    period: "/ month",
-    highlighted: false,
-    features: [
-      "4–6 doctors",
-      "Up to 3 branches",
-      "Unlimited appointments",
-      "Online booking page",
-      "Centralized scheduling",
-      "Multi-branch management",
-      "Ongoing Support",
-    ],
-    cta: "Get started",
-    href: "/signup",
-  },
-];
-
 
 const benefits = [
   { icon: Infinity, text: "Unlimited appointments" },
@@ -472,6 +429,48 @@ export default function Home() {
 
     return () => window.clearInterval(timer);
   }, []);
+
+
+  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+  const [plansLoading, setPlansLoading] = useState(true);
+  const [plansError, setPlansError] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchPlans() {
+      try {
+        const response = await fetch("/api/subscription-plans");
+
+        if (!response.ok) {
+          throw new Error("Failed to load subscription plans.");
+        }
+
+        const data = await response.json();
+
+        if (!cancelled) {
+          setPlans(data.plans ?? []);
+        }
+      } catch (error) {
+        console.error("Failed to load subscription plans:", error);
+
+        if (!cancelled) {
+          setPlansError(true);
+        }
+      } finally {
+        if (!cancelled) {
+          setPlansLoading(false);
+        }
+      }
+    }
+
+    void fetchPlans();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
 
 
   return (
@@ -876,6 +875,8 @@ export default function Home() {
       </section>
 
       {/* Pricing */}
+
+      {/* Pricing */}
       <section
         id="pricing"
         className="scroll-mt-24 border-y border-slate-200/70 bg-white py-20 sm:py-24"
@@ -887,73 +888,138 @@ export default function Home() {
             description="Unlimited appointments on every plan. Choose the plan that fits your clinic today and upgrade as you grow."
           />
 
-          <div className="mx-auto mt-14 grid max-w-6xl gap-6 lg:grid-cols-3">
-            {plans.map((plan) => (
-              <article
-                key={plan.name}
-                className={`relative flex flex-col rounded-3xl border p-7 ${plan.highlighted
-                  ? "border-brand/30 bg-brand-light/40 shadow-xl shadow-brand/5"
-                  : "border-slate-200 bg-white"
-                  }`}
+          {plansLoading ? (
+            <div className="mt-14 flex flex-col items-center justify-center py-16 text-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand/20 border-t-brand" />
+              <p className="mt-4 text-sm text-slate-500">
+                Loading subscription plans...
+              </p>
+            </div>
+          ) : plansError ? (
+            <div className="mt-14 rounded-2xl border border-slate-200 bg-slate-50 px-6 py-12 text-center">
+              <p className="font-semibold text-brand-dark">
+                We couldn't load our pricing plans.
+              </p>
+              <p className="mt-2 text-sm text-slate-500">
+                Please try again later or contact our team for pricing information.
+              </p>
+              <a
+                href="mailto:meitanteistudios@gmail.com"
+                className="mt-5 inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-3 text-sm font-bold text-white transition hover:bg-brand-dark"
               >
-                {plan.highlighted && (
-                  <span className="absolute right-5 top-5 rounded-full bg-brand px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
-                    Great for small clinics
-                  </span>
-                )}
+                Contact our team
+                <ArrowRight size={16} />
+              </a>
+            </div>
+          ) : plans.length === 0 ? (
+            <div className="mt-14 rounded-2xl border border-slate-200 bg-slate-50 px-6 py-12 text-center">
+              <p className="font-semibold text-brand-dark">
+                Pricing plans are coming soon.
+              </p>
+              <p className="mt-2 text-sm text-slate-500">
+                Contact our team to discuss the best plan for your clinic.
+              </p>
+              <a
+                href="mailto:meitanteistudios@gmail.com"
+                className="mt-5 inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-3 text-sm font-bold text-white transition hover:bg-brand-dark"
+              >
+                Talk to our team
+                <ArrowRight size={16} />
+              </a>
+            </div>
+          ) : (
+            <div className="mx-auto mt-14 grid max-w-6xl items-stretch gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {plans.map((plan) => {
+                const isFeatured = plan.name === "Starter";
 
-                <h3 className="text-lg font-bold text-brand-dark">
-                  {plan.name}
-                </h3>
-                <p className="mt-2 min-h-12 text-sm leading-6 text-slate-600">
-                  {plan.description}
-                </p>
-
-                <div className="mt-5 flex flex-wrap items-baseline gap-2">
-                  <span
-                    className={`font-extrabold tracking-tight text-brand-dark ${plan.name === "Enterprise"
-                      ? "text-2xl"
-                      : "text-4xl"
+                return (
+                  <article
+                    key={plan.id}
+                    className={`relative flex flex-col rounded-3xl border p-7 ${isFeatured
+                        ? "border-brand/30 bg-brand-light/40 shadow-xl shadow-brand/5"
+                        : "border-slate-200 bg-white"
                       }`}
                   >
-                    {plan.price}
-                  </span>
-                  {plan.period && (
-                    <span className="text-sm text-slate-500">
-                      {plan.period}
-                    </span>
-                  )}
-                </div>
-
-                <div className="my-6 border-t border-slate-200" />
-
-                <ul className="flex-1 space-y-4">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-3">
-                      <Check
-                        size={18}
-                        className="mt-0.5 shrink-0 text-brand"
-                      />
-                      <span className="text-sm text-slate-700">
-                        {feature}
+                    {isFeatured && (
+                      <span className="absolute right-5 top-5 rounded-full bg-brand px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
+                        Great for small clinics
                       </span>
-                    </li>
-                  ))}
-                </ul>
+                    )}
 
-                <Link
-                  href={plan.href}
-                  className={`mt-8 inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-sm font-bold transition ${plan.highlighted
-                    ? "bg-brand text-white hover:bg-brand-dark"
-                    : "border border-slate-300 bg-white text-brand-dark hover:border-brand hover:bg-brand-light/40"
-                    }`}
-                >
-                  {plan.cta}
-                  <ArrowRight size={16} />
-                </Link>
-              </article>
-            ))}
-          </div>
+                    <h3 className="text-lg font-bold text-brand-dark">
+                      {plan.name}
+                    </h3>
+
+                    <p className="mt-2 min-h-12 text-sm leading-6 text-slate-600">
+                      {plan.description || "A plan designed to support your clinic."}
+                    </p>
+
+                    <div className="mt-5 flex flex-wrap items-baseline gap-2">
+                      <span className="text-4xl font-extrabold tracking-tight text-brand-dark">
+                        ₱{Number(plan.price).toLocaleString("en-PH")}
+                      </span>
+
+                      <span className="text-sm text-slate-500">
+                        /{plan.billing_interval || "month"}
+                      </span>
+                    </div>
+
+                    <div className="my-6 border-t border-slate-200" />
+
+                    <ul className="flex-1 space-y-4">
+                      {(plan.features ?? []).map((feature, index) => (
+                        <li
+                          key={`${plan.id}-feature-${index}`}
+                          className="flex items-start gap-3"
+                        >
+                          <Check
+                            size={18}
+                            className="mt-0.5 shrink-0 text-brand"
+                          />
+                          <span className="text-sm text-slate-700">
+                            {feature}
+                          </span>
+                        </li>
+                      ))}
+
+                      <li className="flex items-start gap-3">
+                        <Check
+                          size={18}
+                          className="mt-0.5 shrink-0 text-brand"
+                        />
+                        <span className="text-sm text-slate-700">
+                          Up to {plan.max_doctors}{" "}
+                          {plan.max_doctors === 1 ? "doctor" : "doctors"}
+                        </span>
+                      </li>
+
+                      <li className="flex items-start gap-3">
+                        <Check
+                          size={18}
+                          className="mt-0.5 shrink-0 text-brand"
+                        />
+                        <span className="text-sm text-slate-700">
+                          Up to {plan.max_branches}{" "}
+                          {plan.max_branches === 1 ? "branch" : "branches"}
+                        </span>
+                      </li>
+                    </ul>
+
+                    <Link
+                      href="/signup"
+                      className={`mt-8 inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-sm font-bold transition ${isFeatured
+                          ? "bg-brand text-white hover:bg-brand-dark"
+                          : "border border-slate-300 bg-white text-brand-dark hover:border-brand hover:bg-brand-light/40"
+                        }`}
+                    >
+                      Get started
+                      <ArrowRight size={16} />
+                    </Link>
+                  </article>
+                );
+              })}
+            </div>
+          )}
 
           <p className="mt-6 text-center text-sm text-slate-500">
             Need a custom setup?{" "}
@@ -966,6 +1032,7 @@ export default function Home() {
           </p>
         </div>
       </section>
+
 
       {/* Quick benefits */}
       <section className="overflow-hidden border-y border-slate-200/70 bg-[#173F35] text-white">

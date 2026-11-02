@@ -8,7 +8,9 @@ import {
   Building2,
   Layers3,
   ChevronLeft,
+  LogOut,
 } from "lucide-react";
+import { logout } from "@/app/actions/auth";
 
 const navigation = [
   {
@@ -126,11 +128,10 @@ export default function PlatformAdminSidebar({
                 <Icon
                   size={19}
                   strokeWidth={active ? 2.2 : 1.8}
-                  className={`shrink-0 ${
-                    active
+                  className={`shrink-0 ${active
                       ? "text-[#B8E6D0]"
                       : "text-white/60 group-hover:text-white"
-                  }`}
+                    }`}
                 />
 
                 {!collapsed && <span>{label}</span>}
@@ -157,11 +158,16 @@ export default function PlatformAdminSidebar({
               Administration
             </p>
 
-            <div className="mt-3 flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-[#82D5AC]" />
-              <span className="text-[11px] text-white/65">
-                Admin workspace
-              </span>
+            <div className="mt-3">
+              <form action={logout}>
+                <button
+                  type="submit"
+                  className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm text-white/65 transition hover:bg-white/10 hover:text-white"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span>Logout</span>
+                </button>
+              </form>
             </div>
           </div>
         </div>
