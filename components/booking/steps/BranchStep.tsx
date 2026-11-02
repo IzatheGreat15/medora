@@ -76,7 +76,7 @@ export default function BranchStep({
                                         size={16}
                                         className="mt-0.5 shrink-0 text-[#176B55]"
                                     />
-                                    <span>{branch.hours}</span>
+                                    <span className="whitespace-pre-line">{branch.hours}</span>
                                 </p>
 
                                 {branch.amenities.map((item) => (

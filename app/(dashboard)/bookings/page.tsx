@@ -1,160 +1,35 @@
 
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import type { FormEvent, ReactNode } from "react";
-import CalendarView, { type CalendarLegendItem } from "@/components/calendar/Calendar";
-import type { CalendarEvent } from "@/lib/calendar/types";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     Search,
     CalendarDays,
-    Calendar as CalendarIcon,
-    ChevronLeft,
-    ChevronRight,
     Clock3,
-    Users,
+    Check,
+    X,
+    ChevronDown,
+    ArrowUpRight,
+    Phone,
+    Mail,
     Building2,
     Stethoscope,
     ClipboardList,
     Eye,
-    Check,
-    X,
-    ChevronDown,
-    Plus,
-    ArrowUpRight,
-    Phone,
-    Mail,
     StickyNote,
+    ChevronLeft,
+    ChevronRight,
+    RefreshCw,
 } from "lucide-react";
-import { getCurrentDate } from "@/lib/date";
 
-
-const appointmentStatusLegend: CalendarLegendItem[] = [
-    {
-        status: "pending",
-        label: "Pending",
-        className: "border-l-amber-500 bg-amber-50 text-amber-800",
-    },
-    {
-        status: "confirmed",
-        label: "Confirmed",
-        className: "border-l-[#176B55] bg-[#DDF3E7] text-[#173F35]",
-    },
-    {
-        status: "rejected",
-        label: "Declined",
-        className: "border-l-rose-500 bg-rose-50 text-rose-800",
-    },
-    {
-        status: "completed",
-        label: "Completed",
-        className: "border-l-sky-500 bg-sky-50 text-sky-800",
-    },
-];
+import {
+    getClinicBookings,
+    updateBookingStatus as saveBookingStatus,
+    type DashboardBooking,
+} from "./actions";
+import Toast from "@/components/shared/Toast";
 
 type BookingStatus = "Pending" | "Confirmed" | "Declined" | "Completed";
-
-type Booking = {
-    id: string;
-    patient: string;
-    email: string;
-    phone: string;
-    service: string;
-    doctor: string;
-    branch: string;
-    date: string;
-    time: string;
-    duration: number;
-    status: BookingStatus;
-    notes: string;
-};
-
-const initialBookings: Booking[] = [
-    {
-        id: "MED-1001",
-        patient: "Maria Santos",
-        email: "maria@example.com",
-        phone: "0917 123 4567",
-        service: "General consultation",
-        doctor: "Dr. Maria Garcia",
-        branch: "Cebu Branch",
-        date: "2026-10-24",
-        time: "09:00",
-        duration: 30,
-        status: "Pending",
-        notes: "Prefers a morning appointment.",
-    },
-    {
-        id: "MED-1002",
-        patient: "Juan Dela Cruz",
-        email: "juan@example.com",
-        phone: "0918 234 5678",
-        service: "Dental cleaning",
-        doctor: "Dr. James Reyes",
-        branch: "Mandaue Branch",
-        date: "2026-10-24",
-        time: "10:30",
-        duration: 60,
-        status: "Confirmed",
-        notes: "First visit to this branch.",
-    },
-    {
-        id: "MED-1003",
-        patient: "Ana Reyes",
-        email: "ana@example.com",
-        phone: "0919 345 6789",
-        service: "Follow-up consultation",
-        doctor: "Dr. Maria Garcia",
-        branch: "Cebu Branch",
-        date: "2026-10-24",
-        time: "11:00",
-        duration: 30,
-        status: "Pending",
-        notes: "Requested a follow-up appointment.",
-    },
-    {
-        id: "MED-1004",
-        patient: "Carlo Mendoza",
-        email: "carlo@example.com",
-        phone: "0920 456 7890",
-        service: "Skin consultation",
-        doctor: "Dr. Angela Lim",
-        branch: "Mandaue Branch",
-        date: "2026-10-25",
-        time: "13:00",
-        duration: 45,
-        status: "Confirmed",
-        notes: "No additional notes.",
-    },
-    {
-        id: "MED-1005",
-        patient: "Sofia Garcia",
-        email: "sofia@example.com",
-        phone: "0921 567 8901",
-        service: "General consultation",
-        doctor: "Dr. Maria Garcia",
-        branch: "Cebu Branch",
-        date: "2026-10-25",
-        time: "14:00",
-        duration: 30,
-        status: "Completed",
-        notes: "Appointment completed.",
-    },
-    {
-        id: "MED-1006",
-        patient: "Daniel Flores",
-        email: "daniel@example.com",
-        phone: "0922 678 9012",
-        service: "Dental cleaning",
-        doctor: "Dr. James Reyes",
-        branch: "Mandaue Branch",
-        date: "2026-10-26",
-        time: "09:30",
-        duration: 60,
-        status: "Declined",
-        notes: "Requested slot was unavailable.",
-    },
-];
 
 const statuses: BookingStatus[] = [
     "Pending",
@@ -171,13 +46,9 @@ function formatDate(date: string) {
     });
 }
 
-function formatTime(time: string, currentDate: Date | null) {
-    if (currentDate === null) {
-        return;
-    }
-
+function formatTime(time: string) {
     const [hours, minutes] = time.split(":").map(Number);
-    const date = new Date(currentDate);
+    const date = new Date();
     date.setHours(hours, minutes, 0, 0);
 
     return date.toLocaleTimeString("en-PH", {
@@ -210,35 +81,83 @@ function StatusBadge({ status }: { status: BookingStatus }) {
     );
 }
 
+function DetailRow({
+    icon,
+    label,
+    value,
+}: {
+    icon: React.ReactNode;
+    label: string;
+    value: string;
+}) {
+    return (
+        <div className="flex items-start gap-3">
+            <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#DDF3E7] text-[#176B55]">
+                {icon}
+            </div>
+
+            <div className="min-w-0">
+                <p className="text-xs text-slate-500">{label}</p>
+                <p className="mt-1 break-words text-sm font-semibold text-[#173F35]">
+                    {value}
+                </p>
+            </div>
+        </div>
+    );
+}
+
 export default function BookingsPage() {
-    const [bookings, setBookings] = useState(initialBookings);
+    const [bookings, setBookings] = useState<DashboardBooking[]>([]);
+    const [selectedBooking, setSelectedBooking] =
+        useState<DashboardBooking | null>(null);
+
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("All statuses");
     const [branchFilter, setBranchFilter] = useState("All branches");
-    const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
-    const [actionMessage, setActionMessage] = useState("");
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [currentDate, setCurrentDate] = useState<Date | null>(null);
-    const [selectedDate, setSelectedDate] = useState("");
-    const [newBooking, setNewBooking] = useState({
-        patient: "",
-        email: "",
-        phone: "",
-        service: "",
-        doctor: "",
-        branch: "",
-        date: "",
-        time: "",
-        duration: "30",
-        notes: "",
-    });
-    const [viewMode, setViewMode] = useState<"table" | "calendar">("table");
-    const [calendarWeekOffset, setCalendarWeekOffset] = useState(0);
+
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
 
+    const [isLoading, setIsLoading] = useState(true);
+    const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
+    const [loadError, setLoadError] = useState("");
+    const [actionMessage, setActionMessage] = useState("");
+    const [messageType, setMessageType] = useState<"success" | "error">("success");
+
+    const loadBookings = useCallback(async () => {
+        setIsLoading(true);
+        setLoadError("");
+
+        try {
+            const result = await getClinicBookings();
+            setBookings(result);
+
+            // Keep the selected drawer in sync after refreshing.
+            setSelectedBooking((current) => {
+                if (!current) return null;
+                return result.find((booking) => booking.id === current.id) ?? null;
+            });
+        } catch (error) {
+            setLoadError(
+                error instanceof Error
+                    ? error.message
+                    : "Unable to load bookings.",
+            );
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        void loadBookings();
+    }, [loadBookings]);
+
     const branches = useMemo(
-        () => [...new Set(bookings.map((booking) => booking.branch))],
+        () =>
+            [...new Set(bookings.map((booking) => booking.branch))]
+                .filter(Boolean)
+                .sort(),
         [bookings],
     );
 
@@ -251,10 +170,14 @@ export default function BookingsPage() {
                 [
                     booking.id,
                     booking.patient,
+                    booking.email,
+                    booking.phone,
                     booking.doctor,
                     booking.service,
                     booking.branch,
-                ].some((value) => value.toLowerCase().includes(query));
+                ].some((value) =>
+                    value?.toLowerCase().includes(query),
+                );
 
             const matchesStatus =
                 statusFilter === "All statuses" ||
@@ -268,188 +191,32 @@ export default function BookingsPage() {
         });
     }, [bookings, search, statusFilter, branchFilter]);
 
-    const filteredEvents = useMemo<CalendarEvent[]>(() => {
-        const statusMap = {
-            Pending: "pending",
-            Confirmed: "confirmed",
-            Declined: "rejected",
-            Completed: "completed",
-        } as const;
-
-        return filteredBookings.map((booking) => {
-            const start = new Date(`${booking.date}T${booking.time}:00`);
-            const end = new Date(start.getTime() + booking.duration * 60_000);
-            const toLocalDateTime = (date: Date) =>
-                `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}T${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}:00`;
-
-            return {
-                id: booking.id,
-                title: booking.patient,
-                startAt: toLocalDateTime(start),
-                endAt: toLocalDateTime(end),
-                type: "appointment",
-                status: statusMap[booking.status],
-                description: `${booking.service} · ${booking.branch}`,
-                personName: booking.doctor,
-                serviceName: booking.service,
-                branchId: booking.branch,
-            };
-        });
-    }, [filteredBookings]);
-
-    function handleEventClick(event: CalendarEvent) {
-        const booking = bookings.find((item) => item.id === event.id);
-        if (booking) {
-            setSelectedBooking(booking);
-            setActionMessage("");
-        }
-    }
+    const counts = useMemo(
+        () => ({
+            all: bookings.length,
+            pending: bookings.filter((b) => b.status === "Pending").length,
+            confirmed: bookings.filter((b) => b.status === "Confirmed").length,
+            completed: bookings.filter((b) => b.status === "Completed").length,
+        }),
+        [bookings],
+    );
 
     const totalBookings = filteredBookings.length;
     const totalPages = Math.max(1, Math.ceil(totalBookings / pageSize));
 
     const paginatedBookings = useMemo(() => {
         const startIndex = (currentPage - 1) * pageSize;
-        const endIndex = startIndex + pageSize;
-
-        return filteredBookings.slice(startIndex, endIndex);
+        return filteredBookings.slice(startIndex, startIndex + pageSize);
     }, [filteredBookings, currentPage, pageSize]);
-
-    useEffect(() => {
-        const today = getCurrentDate();
-        setCurrentDate(today);
-        setSelectedDate(
-            `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`,
-        );
-    }, []);
 
     const startItem =
         totalBookings === 0 ? 0 : (currentPage - 1) * pageSize + 1;
 
     const endItem = Math.min(currentPage * pageSize, totalBookings);
 
-    const weekDays = useMemo(() => {
-        if (currentDate === null) {
-            return [];
-        }
-        const base = new Date(currentDate);
-        base.setHours(12, 0, 0, 0);
-        const day = base.getDay();
-        base.setDate(base.getDate() - ((day + 6) % 7) + calendarWeekOffset * 7);
-        return Array.from({ length: 7 }, (_, index) => {
-            const date = new Date(base);
-            date.setDate(base.getDate() + index);
-            return date;
-        });
-    }, [currentDate, calendarWeekOffset]);
-
-    const weekStart = weekDays[0];
-    const weekEnd = weekDays[6];
-    const calendarHours = Array.from({ length: 11 }, (_, index) => index + 8); // 8 AM–6 PM
-
-    function toDateKey(date: Date) {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
-        return `${year}-${month}-${day}`;
-    }
-
-    function formatHour(hour: number) {
-        const suffix = hour >= 12 ? "PM" : "AM";
-        const displayHour = hour % 12 || 12;
-        return `${displayHour}:00 ${suffix}`;
-    }
-
-    function formatWeekRange(start: Date, end: Date) {
-        const sameMonth = start.getMonth() === end.getMonth();
-        const monthFormat: Intl.DateTimeFormatOptions = { month: "short" };
-        const startLabel = `${start.toLocaleDateString("en-PH", monthFormat)} ${start.getDate()}`;
-        const endLabel = `${!sameMonth ? end.toLocaleDateString("en-PH", monthFormat) + " " : ""}${end.getDate()}, ${end.getFullYear()}`;
-        return `${startLabel} – ${endLabel}`;
-    }
-
-    function getBookingMinutes(booking: Booking) {
-        const [hours, minutes] = booking.time.split(":").map(Number);
-        return hours * 60 + minutes;
-    }
-
-    function getCalendarBookingStyle(booking: Booking) {
-        const startMinutes = getBookingMinutes(booking);
-        const top = ((startMinutes - 8 * 60) / 60) * 64;
-        const height = Math.max((booking.duration / 60) * 64, 58);
-        return { top: `${top}px`, height: `${height}px` };
-    }
-
-
-    const counts = {
-        all: bookings.length,
-        pending: bookings.filter((b) => b.status === "Pending").length,
-        confirmed: bookings.filter((b) => b.status === "Confirmed").length,
-        completed: bookings.filter((b) => b.status === "Completed").length,
-    };
-
-    function updateStatus(
-        booking: Booking,
-        status: "Confirmed" | "Declined",
-    ) {
-        setBookings((current) =>
-            current.map((item) =>
-                item.id === booking.id ? { ...item, status } : item,
-            ),
-        );
-
-        setSelectedBooking({ ...booking, status });
-        setActionMessage(
-            `${booking.patient}'s booking was marked ${status.toLowerCase()}.`,
-        );
-    }
-
-    function handleCreateBooking(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
-
-        const booking: Booking = {
-            id: `MED-${Math.max(
-                1000,
-                ...bookings.map(
-                    (item) => Number(item.id.replace("MED-", "")) || 0
-                )
-            ) + 1
-                }`,
-            patient: newBooking.patient.trim(),
-            email: newBooking.email.trim(),
-            phone: newBooking.phone.trim(),
-            service: newBooking.service,
-            doctor: newBooking.doctor,
-            branch: newBooking.branch,
-            date: newBooking.date,
-            time: newBooking.time,
-            duration: Number(newBooking.duration),
-            status: "Confirmed",
-            notes: newBooking.notes.trim() || "No notes provided.",
-        };
-
-        setBookings((current) => [booking, ...current]);
-        setSearch("");
-        setStatusFilter("All statuses");
-        setBranchFilter("All branches");
+    useEffect(() => {
         setCurrentPage(1);
-        setIsCreateModalOpen(false);
-        setSelectedBooking(null);
-        setActionMessage(`Booking for ${booking.patient} was added successfully.`);
-
-        setNewBooking({
-            patient: "",
-            email: "",
-            phone: "",
-            service: "",
-            doctor: "",
-            branch: "",
-            date: "",
-            time: "",
-            duration: "30",
-            notes: "",
-        });
-    }
+    }, [search, statusFilter, branchFilter, pageSize]);
 
     useEffect(() => {
         if (currentPage > totalPages) {
@@ -457,24 +224,91 @@ export default function BookingsPage() {
         }
     }, [currentPage, totalPages]);
 
+    async function updateStatus(
+        booking: DashboardBooking,
+        status: "Confirmed" | "Declined",
+    ) {
+        if (isUpdatingStatus) return;
+
+        setIsUpdatingStatus(true);
+        setActionMessage("");
+
+        try {
+            await saveBookingStatus(
+                booking.id,
+                status === "Confirmed" ? "Approved" : "Rejected",
+            );
+
+            await loadBookings();
+
+            setSelectedBooking(null);
+            setMessageType("success");
+            setActionMessage(
+                `${booking.patient}'s booking was ${status.toLowerCase()}.`,
+            );
+        } catch (error) {
+            setMessageType("error");
+            setActionMessage(
+                error instanceof Error
+                    ? error.message
+                    : "Unable to update the booking status.",
+            );
+        } finally {
+            setIsUpdatingStatus(false);
+        }
+    }
+
+    function openBooking(booking: DashboardBooking) {
+        setSelectedBooking(booking);
+        setActionMessage("");
+    }
+
+    function getPaginationPages(
+        current: number,
+        total: number,
+    ): (number | "...")[] {
+        if (total <= 7) {
+            return Array.from({ length: total }, (_, index) => index + 1);
+        }
+
+        if (current <= 4) {
+            return [1, 2, 3, 4, 5, "...", total];
+        }
+
+        if (current >= total - 3) {
+            return [
+                1,
+                "...",
+                total - 4,
+                total - 3,
+                total - 2,
+                total - 1,
+                total,
+            ];
+        }
+
+        return [
+            1,
+            "...",
+            current - 1,
+            current,
+            current + 1,
+            "...",
+            total,
+        ];
+    }
+
     return (
         <div className="mx-auto space-y-6">
-            {/* Action feedback */}
+            {/* Feedback messages */}
             {actionMessage && (
-                <div
-                    role="status"
-                    className="flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
-                >
-                    <span>{actionMessage}</span>
-                    <button
-                        type="button"
-                        onClick={() => setActionMessage("")}
-                        aria-label="Dismiss message"
-                    >
-                        <X size={16} />
-                    </button>
-                </div>
+                <Toast
+                    message={actionMessage}
+                    type={messageType}
+                    onClose={() => setActionMessage("")}
+                />
             )}
+            
 
             {/* Summary cards */}
             <section className="grid grid-cols-2 gap-4 xl:grid-cols-4">
@@ -516,307 +350,325 @@ export default function BookingsPage() {
                                 <Icon size={18} />
                             </span>
                         </div>
-                        <p className="mt-3 text-3xl font-bold text-[#173F35]">{value}</p>
+
+                        <p className="mt-3 text-3xl font-bold text-[#173F35]">
+                            {value}
+                        </p>
                     </article>
                 ))}
             </section>
 
-            {/* Bookings: table and calendar views */}
+            {/* Bookings table */}
             <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/[0.02]">
-                {/* Search, filters, view switcher, and add button */}
+                {/* Toolbar */}
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-3 sm:p-4">
                     <p className="hidden shrink-0 text-sm text-slate-500 md:block">
-                        <span className="font-semibold text-[#173F35]">{filteredBookings.length}</span> found
+                        <span className="font-semibold text-[#173F35]">
+                            {filteredBookings.length}
+                        </span>{" "}
+                        found
                     </p>
 
                     <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2 sm:gap-3">
                         <div className="relative min-w-[140px] flex-1 sm:max-w-xs">
-                            <Search size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                            <Search
+                                size={18}
+                                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                            />
                             <input
                                 type="search"
                                 value={search}
-                                onChange={(event) => { setSearch(event.target.value); setCurrentPage(1); }}
+                                onChange={(event) => setSearch(event.target.value)}
                                 placeholder="Search patient, doctor..."
-                                aria-label="Search appointments"
+                                aria-label="Search bookings"
                                 className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#82A995] focus:ring-2 focus:ring-[#DDF3E7] sm:h-11 sm:pl-10"
                             />
                         </div>
 
-                        <div className="relative w-[112px] shrink-0 sm:w-36">
-                            <select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setCurrentPage(1); }} aria-label="Filter appointments by status" className="h-10 w-full appearance-none rounded-xl border border-slate-200 bg-white py-2 pl-2 pr-7 text-xs text-slate-600 outline-none focus:border-[#82A995] sm:h-11 sm:pl-3 sm:pr-9 sm:text-sm">
+                        <div className="relative w-[120px] shrink-0 sm:w-36">
+                            <select
+                                value={statusFilter}
+                                onChange={(event) => setStatusFilter(event.target.value)}
+                                aria-label="Filter by status"
+                                className="h-10 w-full appearance-none rounded-xl border border-slate-200 bg-white py-2 pl-2 pr-7 text-xs text-slate-600 outline-none focus:border-[#82A995] sm:h-11 sm:pl-3 sm:pr-9 sm:text-sm"
+                            >
                                 <option>All statuses</option>
-                                {statuses.map((status) => <option key={status}>{status}</option>)}
+                                {statuses.map((status) => (
+                                    <option key={status} value={status}>
+                                        {status}
+                                    </option>
+                                ))}
                             </select>
-                            <ChevronDown size={15} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 sm:right-3" />
+                            <ChevronDown
+                                size={15}
+                                className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 sm:right-3"
+                            />
                         </div>
 
                         <div className="relative hidden w-36 shrink-0 sm:block">
-                            <select value={branchFilter} onChange={(event) => { setBranchFilter(event.target.value); setCurrentPage(1); }} aria-label="Filter appointments by branch" className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white py-2 pl-3 pr-9 text-sm text-slate-600 outline-none focus:border-[#82A995]">
+                            <select
+                                value={branchFilter}
+                                onChange={(event) => setBranchFilter(event.target.value)}
+                                aria-label="Filter by branch"
+                                className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white py-2 pl-3 pr-9 text-sm text-slate-600 outline-none focus:border-[#82A995]"
+                            >
                                 <option>All branches</option>
-                                {branches.map((branch) => <option key={branch}>{branch}</option>)}
+                                {branches.map((branch) => (
+                                    <option key={branch} value={branch}>
+                                        {branch}
+                                    </option>
+                                ))}
                             </select>
-                            <ChevronDown size={15} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                            <ChevronDown
+                                size={15}
+                                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+                            />
                         </div>
 
-                        <div className="flex h-10 shrink-0 items-center rounded-xl border border-slate-200 bg-slate-50 p-1 sm:h-11">
-                            <button type="button" onClick={() => setViewMode("table")} aria-pressed={viewMode === "table"} className={`inline-flex h-full items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition sm:px-3 sm:text-sm ${viewMode === "table" ? "bg-white text-[#176B55] shadow-sm" : "text-slate-500 hover:text-[#176B55]"}`}>
-                                <ClipboardList size={16} /> <span>Table</span>
-                            </button>
-                            <button type="button" onClick={() => setViewMode("calendar")} aria-pressed={viewMode === "calendar"} className={`inline-flex h-full items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition sm:px-3 sm:text-sm ${viewMode === "calendar" ? "bg-[#DDF3E7] text-[#176B55] shadow-sm" : "text-slate-500 hover:text-[#176B55]"}`}>
-                                <CalendarIcon size={16} /> <span>Calendar</span>
-                            </button>
-                        </div>
-
-                        <button type="button" onClick={() => { setActionMessage(""); setIsCreateModalOpen(true); }} aria-label="Add appointment" title="Add appointment" className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#176B55] text-white transition hover:bg-[#173F35] focus:outline-none focus:ring-2 focus:ring-[#DDF3E7] sm:h-11 sm:w-11">
-                            <Plus size={19} />
+                        <button
+                            type="button"
+                            onClick={() => void loadBookings()}
+                            disabled={isLoading}
+                            title="Refresh bookings"
+                            aria-label="Refresh bookings"
+                            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-50 sm:h-11 sm:w-11"
+                        >
+                            <RefreshCw
+                                size={17}
+                                className={isLoading ? "animate-spin" : ""}
+                            />
                         </button>
                     </div>
                 </div>
 
-                {viewMode === "table" ? (
+                {/* Loading */}
+                {isLoading && bookings.length === 0 && (
+                    <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
+                        <RefreshCw size={24} className="animate-spin text-[#176B55]" />
+                        <p className="mt-4 text-sm font-medium text-slate-600">
+                            Loading bookings...
+                        </p>
+                    </div>
+                )}
+
+                {/* Error */}
+                {!isLoading && loadError && bookings.length === 0 && (
+                    <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
+                        <p className="text-sm font-semibold text-rose-700">
+                            Unable to load bookings
+                        </p>
+                        <p className="mt-2 max-w-md text-sm text-slate-500">
+                            {loadError}
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => void loadBookings()}
+                            className="mt-5 rounded-xl bg-[#176B55] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#173F35]"
+                        >
+                            Try again
+                        </button>
+                    </div>
+                )}
+
+                {/* Table */}
+                {(!isLoading || bookings.length > 0) && (
                     <>
                         <div className="overflow-x-auto">
                             <table className="w-full min-w-[900px] text-left">
-                                <thead><tr className="border-y border-slate-100 bg-slate-50/80">
-                                    {["Patient", "Date & time", "Service", "Doctor", "Branch", "Status", "Action"].map((heading) => <th key={heading} className="whitespace-nowrap px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{heading}</th>)}
-                                </tr></thead>
+                                <thead>
+                                    <tr className="border-y border-slate-100 bg-slate-50/80">
+                                        {[
+                                            "Patient",
+                                            "Date & time",
+                                            "Service",
+                                            "Doctor",
+                                            "Branch",
+                                            "Status",
+                                            "Action",
+                                        ].map((heading) => (
+                                            <th
+                                                key={heading}
+                                                className="whitespace-nowrap px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500"
+                                            >
+                                                {heading}
+                                            </th>
+                                        ))}
+                                    </tr>
+                                </thead>
+
                                 <tbody className="divide-y divide-slate-100">
                                     {paginatedBookings.map((booking) => (
-                                        <tr key={booking.id} onClick={() => { setSelectedBooking(booking); setActionMessage(""); }} className="cursor-pointer transition hover:bg-[#F7F9F6]/80">
-                                            <td className="px-5 py-4"><p className="whitespace-nowrap text-sm font-semibold text-[#173F35]">{booking.patient}</p><p className="mt-1 text-xs text-slate-400">{booking.id}</p></td>
-                                            <td className="whitespace-nowrap px-5 py-4"><p className="text-sm font-medium text-slate-700">{formatDate(booking.date)}</p><p className="mt-1 text-xs text-slate-500">{formatTime(booking.time, currentDate)}</p></td>
-                                            <td className="px-5 py-4 text-sm text-slate-600">{booking.service}</td>
-                                            <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-600">{booking.doctor}</td>
-                                            <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-600">{booking.branch}</td>
-                                            <td className="px-5 py-4"><StatusBadge status={booking.status} /></td>
-                                            <td className="px-5 py-4"><button type="button" onClick={(event) => { event.stopPropagation(); setSelectedBooking(booking); setActionMessage(""); }} aria-label={`View ${booking.patient}'s booking`} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-[#176B55] transition hover:border-[#82A995] hover:bg-[#DDF3E7]/40"><Eye size={14} /> Details</button></td>
+                                        <tr
+                                            key={booking.id}
+                                            onClick={() => openBooking(booking)}
+                                            className="cursor-pointer transition hover:bg-[#F7F9F6]/80"
+                                        >
+                                            <td className="px-5 py-4">
+                                                <p className="whitespace-nowrap text-sm font-semibold text-[#173F35]">
+                                                    {booking.patient}
+                                                </p>
+                                                <p className="mt-1 text-xs text-slate-400">
+                                                    {booking.id}
+                                                </p>
+                                            </td>
+
+                                            <td className="whitespace-nowrap px-5 py-4">
+                                                <p className="text-sm font-medium text-slate-700">
+                                                    {formatDate(booking.date)}
+                                                </p>
+                                                <p className="mt-1 text-xs text-slate-500">
+                                                    {formatTime(booking.time)}
+                                                </p>
+                                            </td>
+
+                                            <td className="px-5 py-4 text-sm text-slate-600">
+                                                {booking.service}
+                                            </td>
+
+                                            <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-600">
+                                                {booking.doctor}
+                                            </td>
+
+                                            <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-600">
+                                                {booking.branch}
+                                            </td>
+
+                                            <td className="px-5 py-4">
+                                                <StatusBadge status={booking.status} />
+                                            </td>
+
+                                            <td className="px-5 py-4">
+                                                <button
+                                                    type="button"
+                                                    onClick={(event) => {
+                                                        event.stopPropagation();
+                                                        openBooking(booking);
+                                                    }}
+                                                    aria-label={`View ${booking.patient}'s booking`}
+                                                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-[#176B55] transition hover:border-[#82A995] hover:bg-[#DDF3E7]/40"
+                                                >
+                                                    <Eye size={14} />
+                                                    Details
+                                                </button>
+                                            </td>
                                         </tr>
                                     ))}
-                                    {filteredBookings.length === 0 && <tr><td colSpan={7} className="px-5 py-16 text-center"><Search size={28} className="mx-auto text-slate-300" /><p className="mt-3 font-semibold text-[#173F35]">No bookings found</p><p className="mt-1 text-sm text-slate-500">Try changing your search or filters.</p></td></tr>}
+
+                                    {paginatedBookings.length === 0 && (
+                                        <tr>
+                                            <td
+                                                colSpan={7}
+                                                className="px-6 py-16 text-center"
+                                            >
+                                                <CalendarDays
+                                                    size={30}
+                                                    className="mx-auto text-slate-300"
+                                                />
+                                                <p className="mt-3 text-sm font-semibold text-slate-700">
+                                                    No bookings found
+                                                </p>
+                                                <p className="mt-1 text-sm text-slate-400">
+                                                    {bookings.length === 0
+                                                        ? "Bookings submitted through your public booking page will appear here."
+                                                        : "Try adjusting your search or filters."}
+                                                </p>
+                                            </td>
+                                        </tr>
+                                    )}
                                 </tbody>
                             </table>
                         </div>
 
-                        <div className="flex flex-col gap-4 border-t border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="flex items-center gap-4"><p className="text-sm text-slate-500">Showing <span className="font-semibold text-[#173F35]">{startItem}</span>–<span className="font-semibold text-[#173F35]">{endItem}</span> of <span className="font-semibold text-[#173F35]">{totalBookings}</span></p>
-                                <div className="hidden items-center gap-2 sm:flex"><span className="text-xs text-slate-500">Rows</span><select value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setCurrentPage(1); }} className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-600 outline-none focus:border-[#82A995]"><option value={10}>10</option><option value={25}>25</option><option value={50}>50</option></select></div>
+                        {/* Pagination */}
+                        <div className="flex flex-col gap-4 border-t border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                            <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
+                                <span>
+                                    Showing{" "}
+                                    <span className="font-semibold text-[#173F35]">
+                                        {startItem}-{endItem}
+                                    </span>{" "}
+                                    of{" "}
+                                    <span className="font-semibold text-[#173F35]">
+                                        {totalBookings}
+                                    </span>
+                                </span>
+
+                                <span className="hidden text-slate-300 sm:inline">|</span>
+
+                                <label className="flex items-center gap-2">
+                                    <span>Rows:</span>
+                                    <select
+                                        value={pageSize}
+                                        onChange={(event) =>
+                                            setPageSize(Number(event.target.value))
+                                        }
+                                        className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm outline-none focus:border-[#82A995]"
+                                    >
+                                        {[10, 25, 50].map((size) => (
+                                            <option key={size} value={size}>
+                                                {size}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
                             </div>
-                            <div className="flex items-center justify-between gap-2 sm:justify-end"><button type="button" disabled={currentPage === 1} onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">Previous</button>
-                                <div className="flex items-center gap-1">{getPaginationPages(currentPage, totalPages).map((page, index) => page === "..." ? <span key={`ellipsis-${index}`} className="flex h-9 w-9 items-center justify-center text-sm text-slate-400">...</span> : <button key={page} type="button" onClick={() => setCurrentPage(page)} className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-sm font-semibold transition ${currentPage === page ? "bg-[#176B55] text-white" : "text-slate-600 hover:bg-[#DDF3E7] hover:text-[#176B55]"}`}>{page}</button>)}</div>
-                                <button type="button" disabled={currentPage === totalPages} onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">Next</button>
+
+                            <div className="flex items-center gap-1">
+                                <button
+                                    type="button"
+                                    disabled={currentPage === 1}
+                                    onClick={() =>
+                                        setCurrentPage((page) => Math.max(1, page - 1))
+                                    }
+                                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                    aria-label="Previous page"
+                                >
+                                    <ChevronLeft size={17} />
+                                </button>
+
+                                {getPaginationPages(currentPage, totalPages).map(
+                                    (page, index) =>
+                                        page === "..." ? (
+                                            <span
+                                                key={`ellipsis-${index}`}
+                                                className="px-2 text-sm text-slate-400"
+                                            >
+                                                ...
+                                            </span>
+                                        ) : (
+                                            <button
+                                                key={page}
+                                                type="button"
+                                                onClick={() => setCurrentPage(page)}
+                                                className={`h-9 min-w-9 rounded-lg px-2 text-sm font-semibold transition ${
+                                                    currentPage === page
+                                                        ? "bg-[#176B55] text-white"
+                                                        : "text-slate-600 hover:bg-slate-100"
+                                                }`}
+                                            >
+                                                {page}
+                                            </button>
+                                        ),
+                                )}
+
+                                <button
+                                    type="button"
+                                    disabled={currentPage === totalPages}
+                                    onClick={() =>
+                                        setCurrentPage((page) =>
+                                            Math.min(totalPages, page + 1),
+                                        )
+                                    }
+                                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                    aria-label="Next page"
+                                >
+                                    <ChevronRight size={17} />
+                                </button>
                             </div>
                         </div>
                     </>
-                ) : (
-                    <CalendarView
-                        events={filteredEvents}
-                        date={selectedDate}
-                        onDateChange={setSelectedDate}
-                        onEventClick={handleEventClick}
-                        startHour={8}
-                        endHour={18}
-                        showPerson
-                        showStatus
-                        legendItems={appointmentStatusLegend}
-                    />
                 )}
             </section>
-
-            {/* Create booking modal */}
-            {isCreateModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <button
-                        type="button"
-                        aria-label="Close create booking modal"
-                        onClick={() => setIsCreateModalOpen(false)}
-                        className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px]"
-                    />
-
-                    <section
-                        role="dialog"
-                        aria-modal="true"
-                        aria-labelledby="create-booking-title"
-                        className="relative z-10 max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl"
-                    >
-                        <div className="flex items-start justify-between border-b border-slate-100 px-6 py-5">
-                            <div>
-                                <h3 id="create-booking-title" className="mt-1 text-xl font-bold text-[#173F35]">
-                                    New booking
-                                </h3>
-                                <p className="mt-1 text-sm text-slate-500">
-                                    Add an appointment for a patient.
-                                </p>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setIsCreateModalOpen(false)}
-                                aria-label="Close modal"
-                                className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleCreateBooking}>
-                            <div className="grid gap-5 px-6 py-6 sm:grid-cols-2">
-                                <div className="sm:col-span-2">
-                                    <h4 className="text-sm font-semibold text-[#173F35]">Patient information</h4>
-                                </div>
-
-                                <label className="block text-sm font-medium text-slate-700">
-                                    Patient name *
-                                    <input
-                                        required
-                                        value={newBooking.patient}
-                                        onChange={(event) => setNewBooking((current) => ({ ...current, patient: event.target.value }))}
-                                        placeholder="e.g. Maria Santos"
-                                        className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-[#82A995] focus:ring-2 focus:ring-[#DDF3E7]"
-                                    />
-                                </label>
-
-                                <label className="block text-sm font-medium text-slate-700">
-                                    Email address *
-                                    <input
-                                        required
-                                        type="email"
-                                        value={newBooking.email}
-                                        onChange={(event) => setNewBooking((current) => ({ ...current, email: event.target.value }))}
-                                        placeholder="patient@example.com"
-                                        className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-[#82A995] focus:ring-2 focus:ring-[#DDF3E7]"
-                                    />
-                                </label>
-
-                                <label className="block text-sm font-medium text-slate-700">
-                                    Phone number *
-                                    <input
-                                        required
-                                        type="tel"
-                                        value={newBooking.phone}
-                                        onChange={(event) => setNewBooking((current) => ({ ...current, phone: event.target.value }))}
-                                        placeholder="09XX XXX XXXX"
-                                        className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-[#82A995] focus:ring-2 focus:ring-[#DDF3E7]"
-                                    />
-                                </label>
-
-                                <div className="sm:col-span-2 border-t border-slate-100 pt-5">
-                                    <h4 className="text-sm font-semibold text-[#173F35]">Appointment details</h4>
-                                </div>
-
-                                <label className="block text-sm font-medium text-slate-700">
-                                    Service *
-                                    <select
-                                        required
-                                        value={newBooking.service}
-                                        onChange={(event) => setNewBooking((current) => ({ ...current, service: event.target.value }))}
-                                        className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-[#82A995]"
-                                    >
-                                        <option value="">Select a service</option>
-                                        {[...new Set(bookings.map((booking) => booking.service))].map((service) => (
-                                            <option key={service} value={service}>{service}</option>
-                                        ))}
-                                    </select>
-                                </label>
-
-                                <label className="block text-sm font-medium text-slate-700">
-                                    Doctor *
-                                    <select
-                                        required
-                                        value={newBooking.doctor}
-                                        onChange={(event) => setNewBooking((current) => ({ ...current, doctor: event.target.value }))}
-                                        className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-[#82A995]"
-                                    >
-                                        <option value="">Select a doctor</option>
-                                        {[...new Set(bookings.map((booking) => booking.doctor))].map((doctor) => (
-                                            <option key={doctor} value={doctor}>{doctor}</option>
-                                        ))}
-                                    </select>
-                                </label>
-
-                                <label className="block text-sm font-medium text-slate-700">
-                                    Branch *
-                                    <select
-                                        required
-                                        value={newBooking.branch}
-                                        onChange={(event) => setNewBooking((current) => ({ ...current, branch: event.target.value }))}
-                                        className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-[#82A995]"
-                                    >
-                                        <option value="">Select a branch</option>
-                                        {branches.map((branch) => (
-                                            <option key={branch} value={branch}>{branch}</option>
-                                        ))}
-                                    </select>
-                                </label>
-
-                                <label className="block text-sm font-medium text-slate-700">
-                                    Appointment date *
-                                    <input
-                                        required
-                                        type="date"
-                                        value={newBooking.date}
-                                        onChange={(event) => setNewBooking((current) => ({ ...current, date: event.target.value }))}
-                                        className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-[#82A995]"
-                                    />
-                                </label>
-
-                                <label className="block text-sm font-medium text-slate-700">
-                                    Start time *
-                                    <input
-                                        required
-                                        type="time"
-                                        value={newBooking.time}
-                                        onChange={(event) => setNewBooking((current) => ({ ...current, time: event.target.value }))}
-                                        className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-[#82A995]"
-                                    />
-                                </label>
-
-                                <label className="block text-sm font-medium text-slate-700">
-                                    Duration *
-                                    <select
-                                        required
-                                        value={newBooking.duration}
-                                        onChange={(event) => setNewBooking((current) => ({ ...current, duration: event.target.value }))}
-                                        className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-[#82A995]"
-                                    >
-                                        <option value="15">15 minutes</option>
-                                        <option value="30">30 minutes</option>
-                                        <option value="45">45 minutes</option>
-                                        <option value="60">60 minutes</option>
-                                        <option value="90">90 minutes</option>
-                                        <option value="120">120 minutes</option>
-                                    </select>
-                                </label>
-
-                                <label className="block text-sm font-medium text-slate-700 sm:col-span-2">
-                                    Patient notes
-                                    <textarea
-                                        rows={3}
-                                        value={newBooking.notes}
-                                        onChange={(event) => setNewBooking((current) => ({ ...current, notes: event.target.value }))}
-                                        placeholder="Any relevant notes for this appointment..."
-                                        className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#82A995] focus:ring-2 focus:ring-[#DDF3E7]"
-                                    />
-                                </label>
-                            </div>
-
-                            <div className="flex flex-col-reverse gap-3 border-t border-slate-100 px-6 py-5 sm:flex-row sm:justify-end">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsCreateModalOpen(false)}
-                                    className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#176B55] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#173F35]"
-                                >
-                                    Save
-                                </button>
-                            </div>
-                        </form>
-                    </section>
-                </div>
-            )}
 
             {/* Booking details drawer */}
             {selectedBooking && (
@@ -875,17 +727,26 @@ export default function BookingsPage() {
                                 <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
                                     Patient information
                                 </p>
+
                                 <p className="mt-3 font-semibold text-[#173F35]">
                                     {selectedBooking.patient}
                                 </p>
+
                                 <div className="mt-3 space-y-2">
                                     <p className="flex items-center gap-2 break-all text-sm text-slate-600">
-                                        <Mail size={15} className="shrink-0 text-slate-400" />
-                                        {selectedBooking.email}
+                                        <Mail
+                                            size={15}
+                                            className="shrink-0 text-slate-400"
+                                        />
+                                        {selectedBooking.email || "No email provided"}
                                     </p>
+
                                     <p className="flex items-center gap-2 text-sm text-slate-600">
-                                        <Phone size={15} className="shrink-0 text-slate-400" />
-                                        {selectedBooking.phone}
+                                        <Phone
+                                            size={15}
+                                            className="shrink-0 text-slate-400"
+                                        />
+                                        {selectedBooking.phone || "No phone provided"}
                                     </p>
                                 </div>
                             </section>
@@ -902,21 +763,25 @@ export default function BookingsPage() {
                                         label="Date"
                                         value={formatDate(selectedBooking.date)}
                                     />
+
                                     <DetailRow
                                         icon={<Clock3 size={19} />}
                                         label="Time"
-                                        value={`${formatTime(selectedBooking.time, currentDate)} · ${selectedBooking.duration} minutes`}
+                                        value={`${formatTime(selectedBooking.time)} · ${selectedBooking.duration} minutes`}
                                     />
+
                                     <DetailRow
                                         icon={<Building2 size={19} />}
                                         label="Branch"
                                         value={selectedBooking.branch}
                                     />
+
                                     <DetailRow
                                         icon={<Stethoscope size={19} />}
                                         label="Doctor"
                                         value={selectedBooking.doctor}
                                     />
+
                                     <DetailRow
                                         icon={<ClipboardList size={19} />}
                                         label="Service"
@@ -928,27 +793,32 @@ export default function BookingsPage() {
                             {/* Notes */}
                             <section>
                                 <div className="flex items-center gap-2">
-                                    <StickyNote size={17} className="text-[#176B55]" />
+                                    <StickyNote
+                                        size={17}
+                                        className="text-[#176B55]"
+                                    />
                                     <h4 className="font-semibold text-[#173F35]">
                                         Patient notes
                                     </h4>
                                 </div>
+
                                 <div className="mt-3 rounded-xl border border-slate-200 p-4 text-sm leading-6 text-slate-600">
                                     {selectedBooking.notes || "No notes provided."}
                                 </div>
                             </section>
                         </div>
 
-                        {/* Actions */}
+                        {/* Drawer actions */}
                         <div className="border-t border-slate-100 bg-white px-6 py-5">
                             {selectedBooking.status === "Pending" ? (
                                 <div className="flex flex-col-reverse gap-3 sm:flex-row">
                                     <button
                                         type="button"
+                                        disabled={isUpdatingStatus}
                                         onClick={() =>
                                             updateStatus(selectedBooking, "Declined")
                                         }
-                                        className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-rose-200 px-4 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-50"
+                                        className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-rose-200 px-4 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         <X size={17} />
                                         Decline booking
@@ -956,13 +826,16 @@ export default function BookingsPage() {
 
                                     <button
                                         type="button"
+                                        disabled={isUpdatingStatus}
                                         onClick={() =>
                                             updateStatus(selectedBooking, "Confirmed")
                                         }
-                                        className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#176B55] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#173F35]"
+                                        className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#176B55] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#173F35] disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         <Check size={17} />
-                                        Approve booking
+                                        {isUpdatingStatus
+                                            ? "Saving..."
+                                            : "Approve booking"}
                                     </button>
                                 </div>
                             ) : (
@@ -976,72 +849,12 @@ export default function BookingsPage() {
                             )}
 
                             <p className="mt-3 text-center text-xs text-slate-400">
-                                Demo only — changes are not saved to a database.
+                                Booking changes are saved to your clinic.
                             </p>
                         </div>
                     </aside>
                 </div>
             )}
-        </div>
-    );
-}
-
-
-function getPaginationPages(
-    currentPage: number,
-    totalPages: number,
-): (number | "...")[] {
-    if (totalPages <= 7) {
-        return Array.from({ length: totalPages }, (_, index) => index + 1);
-    }
-
-    if (currentPage <= 4) {
-        return [1, 2, 3, 4, 5, "...", totalPages];
-    }
-
-    if (currentPage >= totalPages - 3) {
-        return [
-            1,
-            "...",
-            totalPages - 4,
-            totalPages - 3,
-            totalPages - 2,
-            totalPages - 1,
-            totalPages,
-        ];
-    }
-
-    return [
-        1,
-        "...",
-        currentPage - 1,
-        currentPage,
-        currentPage + 1,
-        "...",
-        totalPages,
-    ];
-}
-
-function DetailRow({
-    icon,
-    label,
-    value,
-}: {
-    icon: ReactNode;
-    label: string;
-    value: string;
-}) {
-    return (
-        <div className="flex items-start gap-3">
-            <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#DDF3E7] text-[#176B55]">
-                {icon}
-            </div>
-            <div className="min-w-0">
-                <p className="text-xs text-slate-500">{label}</p>
-                <p className="mt-1 break-words text-sm font-semibold text-[#173F35]">
-                    {value}
-                </p>
-            </div>
         </div>
     );
 }

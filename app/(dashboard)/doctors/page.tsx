@@ -7,6 +7,7 @@ import {
     Activity,
     ArrowDownRight,
     ArrowUpRight,
+    LoaderCircle,
     UserCheck,
     UserRound,
     Users,
@@ -539,7 +540,11 @@ export default function DoctorsPage() {
 
             <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
                 {isLoading ? (
-                    <div className="p-8 text-center text-sm text-slate-500">
+                    <div className="p-8 text-center flex justify-center gap-2 text-sm text-slate-500">
+                        <LoaderCircle
+                        size={22}
+                        className="animate-spin text-emerald-600"
+                      />
                         Loading doctors...
                     </div>
                 ) : (
