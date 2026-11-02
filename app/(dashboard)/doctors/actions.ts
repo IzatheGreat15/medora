@@ -5,6 +5,7 @@ import "server-only";
 
 import { requireClinicUser } from "@/lib/auth/require-clinic-user";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
+import { getClinicContext } from "../bookings/actions";
 
 export type DoctorStatus = "Active" | "Inactive";
 
@@ -288,4 +289,28 @@ export async function deleteDoctor(doctorId: string) {
   }
 
   return { success: true };
+}
+
+export async function getDoctorLimit(): Promise<number> {
+  const { supabase, clinicId } = await getClinicContext();
+
+  const { data: clinic, error: clinicError } = await supabase
+    .from("clinics")
+    .select("subscription_plan_id")
+    .eq("id", clinicId)
+    .single();
+
+  if (clinicError) throw new Error(clinicError.message);
+
+  if (!clinic.subscription_plan_id) return 0;
+
+  const { data: plan, error: planError } = await supabase
+    .from("subscription_plans")
+    .select("max_doctors")
+    .eq("id", clinic.subscription_plan_id)
+    .single();
+
+  if (planError) throw new Error(planError.message);
+
+  return plan.max_doctors ?? 0;
 }

@@ -4,6 +4,7 @@
 import { getCurrentStaff } from "@/lib/auth/get-current-staff";
 import { createRecord } from "@/lib/db/audited-mutations";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
+import { getClinicContext } from "../bookings/actions";
 
 export type BranchStatus = "Active" | "Inactive";
 
@@ -287,4 +288,28 @@ export async function deleteBranch(branchId: string) {
   }
 
   return { success: true };
+}
+
+export async function getBranchLimit(): Promise<number> {
+  const { supabase, clinicId } = await getClinicContext();
+
+  const { data: clinic, error: clinicError } = await supabase
+    .from("clinics")
+    .select("subscription_plan_id")
+    .eq("id", clinicId)
+    .single();
+
+  if (clinicError) throw new Error(clinicError.message);
+
+  if (!clinic.subscription_plan_id) return 0;
+
+  const { data: plan, error: planError } = await supabase
+    .from("subscription_plans")
+    .select("max_branches")
+    .eq("id", clinic.subscription_plan_id)
+    .single();
+
+  if (planError) throw new Error(planError.message);
+
+  return plan.max_branches ?? 0;
 }

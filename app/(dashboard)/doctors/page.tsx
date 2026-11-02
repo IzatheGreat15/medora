@@ -24,6 +24,7 @@ import {
     deleteDoctor,
     getDoctorBranchOptions,
     getDoctors,
+    getDoctorLimit,
     type DoctorBranchOption,
     type DoctorStatus,
 } from "./actions";
@@ -366,6 +367,7 @@ export default function DoctorsPage() {
 
     const [doctors, setDoctors] = useState<DoctorTableItem[]>([]);
     const [branches, setBranches] = useState<DoctorBranchOption[]>([]);
+    const [doctorLimit, setDoctorLimit] = useState<number>(0);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [doctorToDelete, setDoctorToDelete] =
         useState<DoctorTableItem | null>(null);
@@ -379,13 +381,15 @@ export default function DoctorsPage() {
         setPageError("");
 
         try {
-            const [doctorData, branchData] = await Promise.all([
+            const [doctorData, branchData, limitResult] = await Promise.all([
                 getDoctors(),
                 getDoctorBranchOptions(),
+                getDoctorLimit(),
             ]);
 
             setDoctors(doctorData);
             setBranches(branchData);
+            setDoctorLimit(limitResult);
         } catch (err) {
             setPageError(
                 err instanceof Error ? err.message : "Unable to load doctors.",
@@ -420,6 +424,10 @@ export default function DoctorsPage() {
         };
     }, [doctors]);
 
+    // A limit of -1 means unlimited. Count inactive doctors too.
+    const canAddDoctor =
+        doctorLimit === -1 || doctors.length < doctorLimit;
+
     async function handleAddDoctor(input: {
         name: string;
         specialty: string;
@@ -428,11 +436,16 @@ export default function DoctorsPage() {
         status: DoctorStatus;
         branchIds: string[];
     }) {
+        if (!canAddDoctor) {
+            throw new Error(
+                `Your current plan allows only ${doctorLimit} doctors. Please upgrade your plan to add another doctor.`,
+            );
+        }
+
         await createDoctor(input);
 
         // Refresh the table after a successful database insert.
-        const doctorData = await getDoctors();
-        setDoctors(doctorData);
+        await loadData();
         setToast("Doctor added successfully.");
     }
 
@@ -552,17 +565,21 @@ export default function DoctorsPage() {
                         doctors={doctors}
                         showBranch
                         title="All doctors"
-                        description="Search doctors and manage their profiles and assignments."
-                        emptyMessage="No doctors found. Add your first doctor to get started."
+                        description={`Search doctors and manage their profiles and assignments. (${doctors.length} / ${doctorLimit === -1 ? "Unlimited" : doctorLimit} plan limit)`}
+                        emptyMessage="No doctors found."
                         onDoctorEdit={handleEditDoctor}
                         onDoctorDelete={(doctor) => setDoctorToDelete(doctor)}
-                        onDoctorAdd={() => setIsAddModalOpen(true)}
+                        onDoctorAdd={
+                            canAddDoctor
+                                ? () => setIsAddModalOpen(true)
+                                : undefined
+                        }
                     />
                 )}
             </section>
 
             <AddDoctorModal
-                open={isAddModalOpen}
+                open={isAddModalOpen && canAddDoctor}
                 onClose={() => setIsAddModalOpen(false)}
                 branches={branches}
                 onSave={handleAddDoctor}

@@ -24,6 +24,7 @@ import {
   createBranch,
   deleteBranch,
   getBranches,
+  getBranchLimit,
   type Branch,
   type BranchStatus,
 } from "./actions";
@@ -179,6 +180,7 @@ export default function BranchesPage() {
   const router = useRouter();
 
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [branchLimit, setBranchLimit] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
 
@@ -203,8 +205,13 @@ export default function BranchesPage() {
     setErrorMessage("");
 
     try {
-      const result = await getBranches();
-      setBranches(result);
+      const [branchesResult, limitResult] = await Promise.all([
+        getBranches(),
+        getBranchLimit(),
+      ]);
+
+      setBranches(branchesResult);
+      setBranchLimit(limitResult);
     } catch (error) {
       console.error("Failed to load branches:", error);
       setErrorMessage(
@@ -252,6 +259,10 @@ export default function BranchesPage() {
     (total, branch) => total + (branch.doctors ?? 0),
     0
   );
+
+  // A limit of -1 means unlimited.
+  const canAddBranch =
+    branchLimit === -1 || branches.length < branchLimit;
 
   function openAddModal() {
     setFormData(initialFormData);
@@ -420,7 +431,7 @@ export default function BranchesPage() {
       )}
 
       {/* Summary cards */}
-      <div className="grid gap-4 grid-cols-2">
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-3">
         <SummaryCard
           title="Total branches"
           value={branches.length}
@@ -462,6 +473,9 @@ export default function BranchesPage() {
               {branches.length}
             </span>{" "}
             branches
+            <span className="ml-2 text-gray-400">
+              ({branches.length} / {branchLimit === -1 ? "Unlimited" : branchLimit} plan limit)
+            </span>
           </p>
 
           <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
@@ -501,15 +515,17 @@ export default function BranchesPage() {
               />
             </div>
 
-            <button
-              type="button"
-              onClick={openAddModal}
-              title="Add branch"
-              aria-label="Add branch"
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white transition hover:bg-emerald-700"
-            >
-              <Plus size={19} />
-            </button>
+            {canAddBranch && (
+              <button
+                type="button"
+                onClick={openAddModal}
+                title="Add branch"
+                aria-label="Add branch"
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white transition hover:bg-emerald-700"
+              >
+                <Plus size={19} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -569,7 +585,7 @@ export default function BranchesPage() {
                           : "Try changing your search or status filter."}
                       </p>
 
-                      {branches.length === 0 && (
+                      {branches.length === 0 && canAddBranch && (
                         <button
                           type="button"
                           onClick={openAddModal}

@@ -21,7 +21,7 @@ export type DashboardBooking = {
   notes: string;
 };
 
-async function getClinicContext() {
+export async function getClinicContext() {
   const { staff } = await getCurrentStaff();
 
   if (
