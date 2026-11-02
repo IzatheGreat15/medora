@@ -1,4 +1,4 @@
-
+import { Suspense } from "react";
 import BookingWizard from "@/components/booking/BookingWizard";
 import { getPublicBookingOptions } from "./actions";
 
@@ -8,16 +8,21 @@ type PageProps = {
   }>;
 };
 
-export default async function BookAppointmentPage({
-  searchParams,
-}: PageProps) {
+export default function BookAppointmentPage({ searchParams }: PageProps) {
+  return (
+    <Suspense fallback={<BookingLoading />}>
+      <BookingContent searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function BookingContent({ searchParams }: PageProps) {
   const params = await searchParams;
   const clinicId = params.clinic ?? "";
 
-  let options;
-
   try {
-    options = await getPublicBookingOptions(clinicId);
+    const options = await getPublicBookingOptions(clinicId);
+    return <BookingWizard options={options} />;
   } catch {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#F7F9F6] px-4 py-10">
@@ -33,6 +38,16 @@ export default async function BookAppointmentPage({
       </main>
     );
   }
+}
 
-  return <BookingWizard options={options} />;
+function BookingLoading() {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-[#F7F9F6] px-4 py-10">
+      <div className="w-full max-w-3xl animate-pulse space-y-5">
+        <div className="h-12 w-48 rounded-xl bg-slate-200" />
+        <div className="h-32 rounded-2xl bg-white" />
+        <div className="h-64 rounded-2xl bg-white" />
+      </div>
+    </main>
+  );
 }

@@ -7,9 +7,9 @@ import { revalidatePath } from "next/cache";
 import { requireClinicUser } from "@/lib/auth/require-clinic-user";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
 
-type DoctorStatus = "Active" | "Inactive";
+export type DoctorStatus = "Active" | "Inactive";
 
-type DayKey =
+export type DayKey =
   | "monday"
   | "tuesday"
   | "wednesday"
@@ -18,7 +18,7 @@ type DayKey =
   | "saturday"
   | "sunday";
 
-type DoctorForm = {
+export type DoctorForm = {
   id: string;
   name: string;
   specialty: string;
@@ -29,19 +29,19 @@ type DoctorForm = {
   bio: string;
 };
 
-type ScheduleRule = {
+export type ScheduleRule = {
   id: string;
   selectedDays: DayKey[];
   startTime: string;
   endTime: string;
 };
 
-type BranchSchedule = {
+export type BranchSchedule = {
   branchId: string;
   rules: ScheduleRule[];
 };
 
-type ServiceAssignment = {
+export type ServiceAssignment = {
   branchId: string;
   serviceId: string;
   assigned: boolean;
@@ -49,10 +49,30 @@ type ServiceAssignment = {
   durationOverride: string;
 };
 
-type SaveInput = {
+export type SaveInput = {
   doctor: DoctorForm;
   schedules: BranchSchedule[];
   assignments: ServiceAssignment[];
+};
+
+export type Branch = {
+  id: string;
+  name: string;
+  address: string;
+};
+
+export type Service = {
+  id: string;
+  name: string;
+  defaultPrice: number;
+  defaultDuration: number;
+};
+
+export type WorkingHourRule = {
+  id: string;
+  selectedDays: DayKey[];
+  startTime: string;
+  endTime: string;
 };
 
 const DAY_TO_NUMBER: Record<DayKey, number> = {
