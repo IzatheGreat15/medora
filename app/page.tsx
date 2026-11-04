@@ -37,6 +37,7 @@ type SubscriptionPlan = {
   name: string;
   description: string | null;
   price: number | string;
+  discount_price: number | string;
   billing_interval: string;
   features: string[] | null;
   max_doctors: number;
@@ -936,8 +937,8 @@ export default function Home() {
                   <article
                     key={plan.id}
                     className={`relative flex flex-col rounded-3xl border p-7 ${isFeatured
-                        ? "border-brand/30 bg-brand-light/40 shadow-xl shadow-brand/5"
-                        : "border-slate-200 bg-white"
+                      ? "border-brand/30 bg-brand-light/40 shadow-xl shadow-brand/5"
+                      : "border-slate-200 bg-white"
                       }`}
                   >
                     {isFeatured && (
@@ -954,14 +955,47 @@ export default function Home() {
                       {plan.description || "A plan designed to support your clinic."}
                     </p>
 
-                    <div className="mt-5 flex flex-wrap items-baseline gap-2">
-                      <span className="text-4xl font-extrabold tracking-tight text-brand-dark">
-                        ₱{Number(plan.price).toLocaleString("en-PH")}
-                      </span>
+                    <div className="mt-5">
+                      {plan.discount_price !== null &&
+                        plan.discount_price !== undefined &&
+                        Number(plan.discount_price) < Number(plan.price) ? (
+                        <>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-4xl font-extrabold tracking-tight text-brand-dark">
+                              ₱{Number(plan.discount_price).toLocaleString("en-PH")}
+                            </span>
 
-                      <span className="text-sm text-slate-500">
-                        /{plan.billing_interval || "month"}
-                      </span>
+                            <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-700">
+                              {Math.round(
+                                ((Number(plan.price) - Number(plan.discount_price)) /
+                                  Number(plan.price)) *
+                                100
+                              )}
+                              % OFF
+                            </span>
+                          </div>
+
+                          <div className="mt-1 flex items-baseline gap-2">
+                            <span className="text-sm text-slate-400 line-through">
+                              ₱{Number(plan.price).toLocaleString("en-PH")}
+                            </span>
+
+                            <span className="text-sm text-slate-500">
+                              /{plan.billing_interval || "month"}
+                            </span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex flex-wrap items-baseline gap-2">
+                          <span className="text-4xl font-extrabold tracking-tight text-brand-dark">
+                            ₱{Number(plan.price).toLocaleString("en-PH")}
+                          </span>
+
+                          <span className="text-sm text-slate-500">
+                            /{plan.billing_interval || "month"}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="my-6 border-t border-slate-200" />
@@ -1008,8 +1042,8 @@ export default function Home() {
                     <Link
                       href="/signup"
                       className={`mt-8 inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-sm font-bold transition ${isFeatured
-                          ? "bg-brand text-white hover:bg-brand-dark"
-                          : "border border-slate-300 bg-white text-brand-dark hover:border-brand hover:bg-brand-light/40"
+                        ? "bg-brand text-white hover:bg-brand-dark"
+                        : "border border-slate-300 bg-white text-brand-dark hover:border-brand hover:bg-brand-light/40"
                         }`}
                     >
                       Get started

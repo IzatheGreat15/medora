@@ -5,12 +5,13 @@ import { requirePlatformAdmin } from "@/lib/auth/require-platform-admin";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
 
 const PLAN_COLUMNS =
-  "id, name, description, price, billing_interval, features, max_doctors, max_branches, is_active, created_at, updated_at";
+  "id, name, description, price, discount_price, billing_interval, features, max_doctors, max_branches, is_active, created_at, updated_at";
 
 type PlanInput = {
   name?: unknown;
   description?: unknown;
   price?: unknown;
+  discount_price?: unknown;
   billing_interval?: unknown;
   features?: unknown;
   max_doctors?: unknown;
@@ -35,6 +36,24 @@ function validatePlan(input: PlanInput) {
     throw new Error("Price must be a valid non-negative number.");
   }
 
+  let discountPrice: number | null = null;
+
+  if (input.discount_price !== undefined && input.discount_price !== null) {
+    if (
+      typeof input.discount_price !== "number" ||
+      !Number.isFinite(input.discount_price) ||
+      input.discount_price < 0
+    ) {
+      throw new Error("Discount price must be a valid non-negative number.");
+    }
+
+    if (input.discount_price >= input.price) {
+      throw new Error("Discount price must be lower than the regular price.");
+    }
+
+    discountPrice = input.discount_price;
+  }
+
   if (
     !Number.isInteger(input.max_doctors) ||
     (input.max_doctors as number) < 1
@@ -48,13 +67,6 @@ function validatePlan(input: PlanInput) {
   ) {
     throw new Error("Maximum branches must be at least 1.");
   }
-
-//   if (
-//     input.billing_interval !== "monthly" &&
-//     input.billing_interval !== "yearly"
-//   ) {
-//     throw new Error("Billing interval must be monthly or yearly.");
-//   }
 
   if (
     typeof input.description !== "string" ||
@@ -82,6 +94,7 @@ function validatePlan(input: PlanInput) {
     name: input.name.trim(),
     description: input.description.trim(),
     price: input.price,
+    discount_price: discountPrice,
     billing_interval: input.billing_interval,
     features: input.features
       .map((feature: string) => feature.trim())
@@ -120,6 +133,7 @@ export async function GET() {
 
     if (error) {
       console.error("Failed to load subscription plans:", error);
+
       return NextResponse.json(
         { error: "Failed to load subscription plans." },
         { status: 500 },
@@ -128,7 +142,7 @@ export async function GET() {
 
     return NextResponse.json({ plans: data ?? [] });
   } catch (error) {
-    // Next.js redirect() throws internally. Preserve redirect behavior.
+    // Preserve Next.js redirect behavior.
     if (
       error &&
       typeof error === "object" &&
@@ -176,6 +190,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ plan: data }, { status: 201 });
   } catch (error) {
+    // Preserve Next.js redirect behavior.
     if (
       error &&
       typeof error === "object" &&
@@ -202,7 +217,9 @@ export async function PATCH(request: NextRequest) {
   try {
     await requirePlatformAdmin();
 
-    const body = (await request.json()) as PlanInput & { id?: unknown };
+    const body = (await request.json()) as PlanInput & {
+      id?: unknown;
+    };
 
     if (typeof body.id !== "string" || !body.id.trim()) {
       return NextResponse.json(
@@ -246,6 +263,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ plan: data });
   } catch (error) {
+    // Preserve Next.js redirect behavior.
     if (
       error &&
       typeof error === "object" &&
@@ -341,6 +359,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    // Preserve Next.js redirect behavior.
     if (
       error &&
       typeof error === "object" &&

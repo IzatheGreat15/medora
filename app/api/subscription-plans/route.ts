@@ -9,7 +9,7 @@ export async function GET() {
         const { data, error } = await supabase
             .from("subscription_plans")
             .select(
-                "id, name, description, price, billing_interval, features, max_doctors, max_branches, is_active"
+                "id, name, description, price, billing_interval, features, max_doctors, max_branches, is_active, discount_price"
             )
             .eq("is_active", true)
             .order("price", { ascending: true });

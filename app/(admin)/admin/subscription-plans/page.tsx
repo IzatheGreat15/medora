@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -19,6 +18,7 @@ type SubscriptionPlan = {
     id: string;
     name: string;
     price: number;
+    discount_price: number | null;
     maxDoctors: number;
     maxBranches: number;
     description: string;
@@ -32,6 +32,7 @@ type DatabasePlan = {
     id: string;
     name: string;
     price: number | string;
+    discount_price: number | string | null;
     max_doctors: number;
     max_branches: number;
     description: string | null;
@@ -42,6 +43,7 @@ type DatabasePlan = {
 const emptyForm: PlanForm = {
     name: "",
     price: 0,
+    discount_price: null,
     maxDoctors: 1,
     maxBranches: 1,
     description: "",
@@ -54,12 +56,23 @@ function mapDatabasePlan(plan: DatabasePlan): SubscriptionPlan {
         id: plan.id,
         name: plan.name,
         price: Number(plan.price),
+        discount_price:
+            plan.discount_price === null
+                ? null
+                : Number(plan.discount_price),
         maxDoctors: plan.max_doctors,
         maxBranches: plan.max_branches,
         description: plan.description ?? "",
         features: plan.features ?? [],
         isActive: plan.is_active,
     };
+}
+
+function formatPrice(price: number) {
+    return `₱${price.toLocaleString("en-PH", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+    })}`;
 }
 
 async function getErrorMessage(response: Response): Promise<string> {
@@ -142,6 +155,7 @@ export default function SubscriptionPlansPage() {
             }
 
             const data = await response.json();
+
             const databasePlans: DatabasePlan[] = Array.isArray(data)
                 ? data
                 : data.plans ?? [];
@@ -189,15 +203,18 @@ export default function SubscriptionPlansPage() {
 
     function openEditModal(plan: SubscriptionPlan) {
         setEditingPlan(plan);
+
         setForm({
             name: plan.name,
             price: plan.price,
+            discount_price: plan.discount_price,
             maxDoctors: plan.maxDoctors,
             maxBranches: plan.maxBranches,
             description: plan.description,
             features: plan.features.length ? [...plan.features] : [""],
             isActive: plan.isActive,
         });
+
         setModalOpen(true);
     }
 
@@ -233,13 +250,29 @@ export default function SubscriptionPlansPage() {
             return;
         }
 
+        if (
+            form.discount_price !== null &&
+            (!Number.isFinite(form.discount_price) ||
+                form.discount_price < 0 ||
+                form.discount_price >= form.price)
+        ) {
+            showToast(
+                "error",
+                "Discount price must be lower than the regular price."
+            );
+            return;
+        }
+
         const payload = {
             name: form.name.trim(),
             price: form.price,
+            discount_price: form.discount_price,
             max_doctors: form.maxDoctors,
             max_branches: form.maxBranches,
             description: form.description.trim(),
-            features: form.features.map((feature) => feature.trim()).filter(Boolean),
+            features: form.features
+                .map((feature) => feature.trim())
+                .filter(Boolean),
             is_active: form.isActive,
         };
 
@@ -281,7 +314,6 @@ export default function SubscriptionPlansPage() {
         }
     }
 
-
     async function deletePlan() {
         if (!deleteTarget || deleting) return;
 
@@ -315,7 +347,6 @@ export default function SubscriptionPlansPage() {
         }
     }
 
-
     return (
         <div className="space-y-6">
             {/* Top notification */}
@@ -324,16 +355,18 @@ export default function SubscriptionPlansPage() {
                     <div
                         role={error ? "alert" : "status"}
                         aria-live={error ? "assertive" : "polite"}
-                        className={`pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-xl border bg-white p-4 shadow-lg ${error
+                        className={`pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-xl border bg-white p-4 shadow-lg ${
+                            error
                                 ? "border-red-200"
                                 : "border-emerald-200"
-                            }`}
+                        }`}
                     >
                         <div
-                            className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${error
+                            className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                                error
                                     ? "bg-red-50 text-red-600"
                                     : "bg-emerald-50 text-emerald-600"
-                                }`}
+                            }`}
                         >
                             {error ? (
                                 <AlertCircle size={20} />
@@ -344,11 +377,15 @@ export default function SubscriptionPlansPage() {
 
                         <div className="min-w-0 flex-1">
                             <p
-                                className={`text-sm font-semibold ${error ? "text-red-700" : "text-emerald-700"
-                                    }`}
+                                className={`text-sm font-semibold ${
+                                    error
+                                        ? "text-red-700"
+                                        : "text-emerald-700"
+                                }`}
                             >
                                 {error ? "Something went wrong" : "Success"}
                             </p>
+
                             <p className="mt-1 break-words text-sm text-slate-600">
                                 {error || success}
                             </p>
@@ -382,9 +419,12 @@ export default function SubscriptionPlansPage() {
                                 size={19}
                                 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
                             />
+
                             <input
                                 value={search}
-                                onChange={(event) => setSearch(event.target.value)}
+                                onChange={(event) =>
+                                    setSearch(event.target.value)
+                                }
                                 placeholder="Search..."
                                 aria-label="Search subscription plans"
                                 className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#176B55] focus:ring-2 focus:ring-[#176B55]/10 sm:w-[230px]"
@@ -393,7 +433,9 @@ export default function SubscriptionPlansPage() {
 
                         <select
                             value={statusFilter}
-                            onChange={(event) => setStatusFilter(event.target.value)}
+                            onChange={(event) =>
+                                setStatusFilter(event.target.value)
+                            }
                             aria-label="Filter plans by status"
                             className="h-10 rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-700 outline-none focus:border-[#176B55] sm:w-[170px]"
                         >
@@ -423,14 +465,19 @@ export default function SubscriptionPlansPage() {
                                 <th className="px-6 py-4">Doctors</th>
                                 <th className="px-6 py-4">Branches</th>
                                 <th className="px-6 py-4">Status</th>
-                                <th className="px-6 py-4 text-center">Actions</th>
+                                <th className="px-6 py-4 text-center">
+                                    Actions
+                                </th>
                             </tr>
                         </thead>
 
                         <tbody className="divide-y divide-slate-100">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-16 text-center">
+                                    <td
+                                        colSpan={6}
+                                        className="px-6 py-16 text-center"
+                                    >
                                         <LoaderCircle
                                             className="mx-auto animate-spin text-[#176B55]"
                                             size={26}
@@ -442,7 +489,10 @@ export default function SubscriptionPlansPage() {
                                 </tr>
                             ) : filteredPlans.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-16 text-center">
+                                    <td
+                                        colSpan={6}
+                                        className="px-6 py-16 text-center"
+                                    >
                                         <Layers3
                                             size={30}
                                             className="mx-auto text-slate-300"
@@ -451,7 +501,8 @@ export default function SubscriptionPlansPage() {
                                             No subscription plans found
                                         </p>
                                         <p className="mt-1 text-sm text-slate-400">
-                                            Try changing your search or add a new plan.
+                                            Try changing your search or add a
+                                            new plan.
                                         </p>
                                     </td>
                                 </tr>
@@ -466,6 +517,7 @@ export default function SubscriptionPlansPage() {
                                                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#DDF3E7] text-[#176B55]">
                                                     <Layers3 size={22} />
                                                 </div>
+
                                                 <div>
                                                     <p className="font-semibold text-[#173F35]">
                                                         {plan.name}
@@ -478,10 +530,36 @@ export default function SubscriptionPlansPage() {
                                         </td>
 
                                         <td className="px-6 py-5">
-                                            <span className="font-semibold text-[#173F35]">
-                                                ₱{plan.price.toLocaleString("en-PH")}
-                                            </span>
-                                            <span className="text-slate-400"> / mo</span>
+                                            {plan.discount_price !== null ? (
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-semibold text-[#176B55]">
+                                                            {formatPrice(
+                                                                plan.discount_price
+                                                            )}
+                                                        </span>
+                                                        <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase text-emerald-700">
+                                                            Sale
+                                                        </span>
+                                                    </div>
+
+                                                    <p className="mt-1 text-xs text-slate-400">
+                                                        <span className="line-through">
+                                                            {formatPrice(
+                                                                plan.price
+                                                            )}
+                                                        </span>
+                                                        {" / mo"}
+                                                    </p>
+                                                </div>
+                                            ) : (
+                                                <span className="font-semibold text-[#173F35]">
+                                                    {formatPrice(plan.price)}
+                                                    <span className="font-normal text-slate-400">
+                                                        {" / mo"}
+                                                    </span>
+                                                </span>
+                                            )}
                                         </td>
 
                                         <td className="px-6 py-5 text-sm text-slate-600">
@@ -494,18 +572,22 @@ export default function SubscriptionPlansPage() {
 
                                         <td className="px-6 py-5">
                                             <span
-                                                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${plan.isActive
+                                                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                                                    plan.isActive
                                                         ? "bg-emerald-50 text-emerald-700"
                                                         : "bg-slate-100 text-slate-500"
-                                                    }`}
+                                                }`}
                                             >
                                                 <span
-                                                    className={`mr-2 h-1.5 w-1.5 rounded-full ${plan.isActive
+                                                    className={`mr-2 h-1.5 w-1.5 rounded-full ${
+                                                        plan.isActive
                                                             ? "bg-emerald-500"
                                                             : "bg-slate-400"
-                                                        }`}
+                                                    }`}
                                                 />
-                                                {plan.isActive ? "Active" : "Inactive"}
+                                                {plan.isActive
+                                                    ? "Active"
+                                                    : "Inactive"}
                                             </span>
                                         </td>
 
@@ -513,16 +595,21 @@ export default function SubscriptionPlansPage() {
                                             <div className="flex items-center justify-center gap-2">
                                                 <button
                                                     type="button"
-                                                    onClick={() => openEditModal(plan)}
+                                                    onClick={() =>
+                                                        openEditModal(plan)
+                                                    }
                                                     title="Edit plan"
                                                     aria-label={`Edit ${plan.name}`}
                                                     className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-emerald-50 hover:text-[#176B55]"
                                                 >
                                                     <Pencil size={17} />
                                                 </button>
+
                                                 <button
                                                     type="button"
-                                                    onClick={() => setDeleteTarget(plan)}
+                                                    onClick={() =>
+                                                        setDeleteTarget(plan)
+                                                    }
                                                     title="Delete plan"
                                                     aria-label={`Delete ${plan.name}`}
                                                     className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-red-50 hover:text-red-600"
@@ -546,12 +633,15 @@ export default function SubscriptionPlansPage() {
                         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
                             <div>
                                 <h2 className="text-lg font-bold text-[#173F35]">
-                                    {editingPlan ? "Edit subscription plan" : "Add subscription plan"}
+                                    {editingPlan
+                                        ? "Edit subscription plan"
+                                        : "Add subscription plan"}
                                 </h2>
                                 <p className="mt-1 text-sm text-slate-500">
                                     Configure the plan's pricing and limits.
                                 </p>
                             </div>
+
                             <button
                                 type="button"
                                 onClick={() => setModalOpen(false)}
@@ -564,29 +654,45 @@ export default function SubscriptionPlansPage() {
 
                         <form onSubmit={savePlan} className="space-y-5 p-6">
                             <div className="space-y-1.5">
-                                <label htmlFor="plan-name" className="text-sm font-medium text-slate-700">
-                                    Plan name <span className="text-red-500">*</span>
+                                <label
+                                    htmlFor="plan-name"
+                                    className="text-sm font-medium text-slate-700"
+                                >
+                                    Plan name{" "}
+                                    <span className="text-red-500">*</span>
                                 </label>
+
                                 <input
                                     id="plan-name"
                                     required
                                     maxLength={100}
                                     value={form.name}
-                                    onChange={(event) => updateField("name", event.target.value)}
+                                    onChange={(event) =>
+                                        updateField("name", event.target.value)
+                                    }
                                     placeholder="e.g. Starter"
                                     className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-[#176B55] focus:ring-2 focus:ring-[#176B55]/10"
                                 />
                             </div>
 
                             <div className="space-y-1.5">
-                                <label htmlFor="plan-description" className="text-sm font-medium text-slate-700">
+                                <label
+                                    htmlFor="plan-description"
+                                    className="text-sm font-medium text-slate-700"
+                                >
                                     Description
                                 </label>
+
                                 <textarea
                                     id="plan-description"
                                     rows={2}
                                     value={form.description}
-                                    onChange={(event) => updateField("description", event.target.value)}
+                                    onChange={(event) =>
+                                        updateField(
+                                            "description",
+                                            event.target.value
+                                        )
+                                    }
                                     placeholder="Describe who this plan is for..."
                                     className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#176B55] focus:ring-2 focus:ring-[#176B55]/10"
                                 />
@@ -596,27 +702,39 @@ export default function SubscriptionPlansPage() {
                                 <label className="text-sm font-medium text-slate-700">
                                     Plan features
                                 </label>
+
                                 {form.features.map((feature, index) => (
                                     <div key={index} className="flex gap-2">
                                         <input
                                             value={feature}
                                             onChange={(event) => {
-                                                const updated = [...form.features];
-                                                updated[index] = event.target.value;
-                                                updateField("features", updated);
+                                                const updated = [
+                                                    ...form.features,
+                                                ];
+                                                updated[index] =
+                                                    event.target.value;
+                                                updateField(
+                                                    "features",
+                                                    updated
+                                                );
                                             }}
                                             placeholder={`Feature ${index + 1}`}
                                             className="h-10 min-w-0 flex-1 rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-[#176B55] focus:ring-2 focus:ring-[#176B55]/10"
                                         />
+
                                         <button
                                             type="button"
                                             onClick={() =>
                                                 updateField(
                                                     "features",
-                                                    form.features.filter((_, i) => i !== index)
+                                                    form.features.filter(
+                                                        (_, i) => i !== index
+                                                    )
                                                 )
                                             }
-                                            disabled={form.features.length === 1}
+                                            disabled={
+                                                form.features.length === 1
+                                            }
                                             aria-label={`Remove feature ${index + 1}`}
                                             className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-30"
                                         >
@@ -624,45 +742,144 @@ export default function SubscriptionPlansPage() {
                                         </button>
                                     </div>
                                 ))}
+
                                 <button
                                     type="button"
-                                    onClick={() => updateField("features", [...form.features, ""])}
+                                    onClick={() =>
+                                        updateField("features", [
+                                            ...form.features,
+                                            "",
+                                        ])
+                                    }
                                     className="inline-flex items-center gap-2 rounded-lg py-2 text-sm font-semibold text-[#176B55] hover:text-[#125642]"
                                 >
                                     <Plus size={16} />
                                     Add feature
                                 </button>
+
                                 <p className="text-xs text-slate-400">
-                                    Blank features are automatically excluded when saved.
+                                    Blank features are automatically excluded
+                                    when saved.
                                 </p>
                             </div>
 
-                            <div className="space-y-1.5">
-                                <label htmlFor="plan-price" className="text-sm font-medium text-slate-700">
-                                    Monthly price (PHP) <span className="text-red-500">*</span>
-                                </label>
-                                <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">
-                                        ₱
-                                    </span>
-                                    <input
-                                        id="plan-price"
-                                        required
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        value={form.price}
-                                        onChange={(event) => updateField("price", Number(event.target.value))}
-                                        className="h-11 w-full rounded-xl border border-slate-200 pl-8 pr-3 text-sm outline-none focus:border-[#176B55] focus:ring-2 focus:ring-[#176B55]/10"
-                                    />
+                            {/* Pricing */}
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                <div className="space-y-1.5">
+                                    <label
+                                        htmlFor="plan-price"
+                                        className="text-sm font-medium text-slate-700"
+                                    >
+                                        Regular monthly price (PHP){" "}
+                                        <span className="text-red-500">*</span>
+                                    </label>
+
+                                    <div className="relative">
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">
+                                            ₱
+                                        </span>
+
+                                        <input
+                                            id="plan-price"
+                                            required
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            value={form.price}
+                                            onChange={(event) =>
+                                                updateField(
+                                                    "price",
+                                                    Number(event.target.value)
+                                                )
+                                            }
+                                            className="h-11 w-full rounded-xl border border-slate-200 pl-8 pr-3 text-sm outline-none focus:border-[#176B55] focus:ring-2 focus:ring-[#176B55]/10"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label
+                                        htmlFor="plan-discount-price"
+                                        className="text-sm font-medium text-slate-700"
+                                    >
+                                        Discount price (PHP)
+                                    </label>
+
+                                    <div className="relative">
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">
+                                            ₱
+                                        </span>
+
+                                        <input
+                                            id="plan-discount-price"
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            value={
+                                                form.discount_price ?? ""
+                                            }
+                                            onChange={(event) => {
+                                                const value =
+                                                    event.target.value;
+
+                                                updateField(
+                                                    "discount_price",
+                                                    value === ""
+                                                        ? null
+                                                        : Number(value)
+                                                );
+                                            }}
+                                            placeholder="Optional"
+                                            className="h-11 w-full rounded-xl border border-slate-200 pl-8 pr-3 text-sm outline-none focus:border-[#176B55] focus:ring-2 focus:ring-[#176B55]/10"
+                                        />
+                                    </div>
+
+                                    <p className="text-xs text-slate-400">
+                                        Leave blank if this plan has no
+                                        discount.
+                                    </p>
                                 </div>
                             </div>
 
+                            {form.discount_price !== null &&
+                                form.discount_price >= 0 &&
+                                form.discount_price < form.price && (
+                                    <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
+                                        <p className="text-sm font-medium text-emerald-800">
+                                            Discount preview
+                                        </p>
+                                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                                            <span className="text-sm text-slate-400 line-through">
+                                                {formatPrice(form.price)}
+                                            </span>
+                                            <span className="font-semibold text-emerald-700">
+                                                {formatPrice(
+                                                    form.discount_price
+                                                )}
+                                            </span>
+                                            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                                                {Math.round(
+                                                    ((form.price -
+                                                        form.discount_price) /
+                                                        form.price) *
+                                                        100
+                                                )}
+                                                % OFF
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+
+                            {/* Limits */}
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 <div className="space-y-1.5">
-                                    <label htmlFor="plan-doctors" className="text-sm font-medium text-slate-700">
+                                    <label
+                                        htmlFor="plan-doctors"
+                                        className="text-sm font-medium text-slate-700"
+                                    >
                                         Maximum doctors
                                     </label>
+
                                     <input
                                         id="plan-doctors"
                                         required
@@ -670,15 +887,24 @@ export default function SubscriptionPlansPage() {
                                         min="1"
                                         step="1"
                                         value={form.maxDoctors}
-                                        onChange={(event) => updateField("maxDoctors", Number(event.target.value))}
+                                        onChange={(event) =>
+                                            updateField(
+                                                "maxDoctors",
+                                                Number(event.target.value)
+                                            )
+                                        }
                                         className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-[#176B55] focus:ring-2 focus:ring-[#176B55]/10"
                                     />
                                 </div>
 
                                 <div className="space-y-1.5">
-                                    <label htmlFor="plan-branches" className="text-sm font-medium text-slate-700">
+                                    <label
+                                        htmlFor="plan-branches"
+                                        className="text-sm font-medium text-slate-700"
+                                    >
                                         Maximum branches
                                     </label>
+
                                     <input
                                         id="plan-branches"
                                         required
@@ -686,29 +912,43 @@ export default function SubscriptionPlansPage() {
                                         min="1"
                                         step="1"
                                         value={form.maxBranches}
-                                        onChange={(event) => updateField("maxBranches", Number(event.target.value))}
+                                        onChange={(event) =>
+                                            updateField(
+                                                "maxBranches",
+                                                Number(event.target.value)
+                                            )
+                                        }
                                         className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-[#176B55] focus:ring-2 focus:ring-[#176B55]/10"
                                     />
                                 </div>
                             </div>
 
+                            {/* Active status */}
                             <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-4">
                                 <input
                                     type="checkbox"
                                     checked={form.isActive}
-                                    onChange={(event) => updateField("isActive", event.target.checked)}
+                                    onChange={(event) =>
+                                        updateField(
+                                            "isActive",
+                                            event.target.checked
+                                        )
+                                    }
                                     className="mt-0.5 h-4 w-4 accent-[#176B55]"
                                 />
+
                                 <span>
                                     <span className="block text-sm font-semibold text-[#173F35]">
                                         Active plan
                                     </span>
                                     <span className="mt-1 block text-xs leading-5 text-slate-500">
-                                        Allow this plan to be assigned to clinics.
+                                        Allow this plan to be assigned to
+                                        clinics.
                                     </span>
                                 </span>
                             </label>
 
+                            {/* Actions */}
                             <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
                                 <button
                                     type="button"
@@ -718,21 +958,26 @@ export default function SubscriptionPlansPage() {
                                 >
                                     Cancel
                                 </button>
+
                                 <button
                                     type="submit"
                                     disabled={saving}
                                     className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#176B55] px-5 text-sm font-semibold text-white transition hover:bg-[#125642] disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     {saving ? (
-                                        <LoaderCircle size={17} className="animate-spin" />
+                                        <LoaderCircle
+                                            size={17}
+                                            className="animate-spin"
+                                        />
                                     ) : (
                                         <Check size={17} />
                                     )}
+
                                     {saving
                                         ? "Saving..."
                                         : editingPlan
-                                            ? "Save changes"
-                                            : "Create plan"}
+                                          ? "Save changes"
+                                          : "Create plan"}
                                 </button>
                             </div>
                         </form>
@@ -752,13 +997,20 @@ export default function SubscriptionPlansPage() {
                         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-red-600">
                             <Trash2 size={22} />
                         </div>
-                        <h3 id="delete-title" className="mt-4 text-lg font-bold text-[#173F35]">
+
+                        <h3
+                            id="delete-title"
+                            className="mt-4 text-lg font-bold text-[#173F35]"
+                        >
                             Delete {deleteTarget.name}?
                         </h3>
+
                         <p className="mt-2 text-sm leading-6 text-slate-500">
-                            This permanently removes the subscription plan. Make sure no clinics
-                            currently depend on it before deleting.
+                            This permanently removes the subscription plan.
+                            Make sure no clinics currently depend on it before
+                            deleting.
                         </p>
+
                         <div className="mt-6 flex justify-end gap-3">
                             <button
                                 type="button"
@@ -768,6 +1020,7 @@ export default function SubscriptionPlansPage() {
                             >
                                 Cancel
                             </button>
+
                             <button
                                 type="button"
                                 onClick={deletePlan}
@@ -775,8 +1028,12 @@ export default function SubscriptionPlansPage() {
                                 className="inline-flex h-10 items-center gap-2 rounded-xl bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 {deleting && (
-                                    <LoaderCircle size={16} className="animate-spin" />
+                                    <LoaderCircle
+                                        size={16}
+                                        className="animate-spin"
+                                    />
                                 )}
+
                                 {deleting ? "Deleting..." : "Delete plan"}
                             </button>
                         </div>
