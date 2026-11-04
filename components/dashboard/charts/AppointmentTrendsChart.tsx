@@ -1,9 +1,6 @@
 
-"use client";
-
 import {
   CartesianGrid,
-  Legend,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -11,90 +8,102 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+
 import ChartCard from "./ChartCard";
 
-const data = [
-  { day: "Mon", bookings: 18, completed: 14 },
-  { day: "Tue", bookings: 24, completed: 19 },
-  { day: "Wed", bookings: 21, completed: 17 },
-  { day: "Thu", bookings: 30, completed: 23 },
-  { day: "Fri", bookings: 26, completed: 22 },
-  { day: "Sat", bookings: 34, completed: 28 },
-  { day: "Sun", bookings: 20, completed: 16 },
-];
+type AppointmentTrendsChartProps = {
+  data: {
+    day: string;
+    bookings: number;
+    completed: number;
+  }[];
+};
 
-export default function AppointmentTrendsChart() {
+export default function AppointmentTrendsChart({
+  data,
+}: AppointmentTrendsChartProps) {
   return (
     <ChartCard
       title="Appointment trends"
-      description="Bookings and completed appointments over time"
-      className="h-full"
+      description="Booking activity and completed appointments over time."
+      className="col-span-1"
     >
-      <div className="h-[280px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart
-            data={data}
-            margin={{ top: 8, right: 8, left: -18, bottom: 0 }}
-          >
-            <CartesianGrid
-              stroke="#E9EFEB"
-              strokeDasharray="3 3"
-              vertical={false}
-            />
+      {data.length > 0 ? (
+        <div className="h-[280px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart
+              data={data}
+              margin={{ top: 8, right: 8, left: -20, bottom: 0 }}
+            >
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="#E9EFEB"
+              />
 
-            <XAxis
-              dataKey="day"
-              tickLine={false}
-              axisLine={false}
-              tick={{ fill: "#64748B", fontSize: 12 }}
-              dy={10}
-            />
+              <XAxis
+                dataKey="day"
+                tick={{ fill: "#94A3B8", fontSize: 11 }}
+                axisLine={false}
+                tickLine={false}
+                minTickGap={20}
+              />
 
-            <YAxis
-              allowDecimals={false}
-              tickLine={false}
-              axisLine={false}
-              tick={{ fill: "#64748B", fontSize: 12 }}
-            />
+              <YAxis
+                allowDecimals={false}
+                tick={{ fill: "#94A3B8", fontSize: 11 }}
+                axisLine={false}
+                tickLine={false}
+              />
 
-            <Tooltip
-              contentStyle={{
-                borderRadius: 12,
-                border: "1px solid #E2E8F0",
-                fontSize: 12,
-              }}
-            />
+              <Tooltip
+                contentStyle={{
+                  borderRadius: 12,
+                  border: "1px solid #E2E8F0",
+                  fontSize: 12,
+                }}
+              />
 
-            <Legend
-              verticalAlign="top"
-              align="right"
-              iconType="circle"
-              iconSize={8}
-              wrapperStyle={{ fontSize: 12, paddingBottom: 20 }}
-            />
+              <Line
+                type="monotone"
+                dataKey="bookings"
+                name="Bookings"
+                stroke="#176B55"
+                strokeWidth={2.5}
+                dot={false}
+                activeDot={{ r: 5 }}
+              />
 
-            <Line
-              type="monotone"
-              dataKey="bookings"
-              name="Bookings"
-              stroke="#176B55"
-              strokeWidth={2.5}
-              dot={false}
-              activeDot={{ r: 5 }}
-            />
-
-            <Line
-              type="monotone"
-              dataKey="completed"
-              name="Completed"
-              stroke="#82A995"
-              strokeWidth={2.5}
-              dot={false}
-              activeDot={{ r: 5 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+              <Line
+                type="monotone"
+                dataKey="completed"
+                name="Completed"
+                stroke="#82A995"
+                strokeWidth={2.5}
+                dot={false}
+                activeDot={{ r: 5 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      ) : (
+        <EmptyChart />
+      )}
     </ChartCard>
+  );
+}
+
+function EmptyChart() {
+  return (
+    <div className="flex h-[280px] items-center justify-center text-center">
+      <div>
+        <p className="text-sm font-medium text-slate-700">
+          No appointment data available
+        </p>
+        <p className="mt-1 text-xs text-slate-500">
+          Booking trends will appear here.
+        </p>
+      </div>
+    </div>
   );
 }

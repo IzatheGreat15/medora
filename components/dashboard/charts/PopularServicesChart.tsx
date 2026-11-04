@@ -1,6 +1,4 @@
 
-"use client";
-
 import {
   Bar,
   BarChart,
@@ -10,74 +8,96 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+
 import ChartCard from "./ChartCard";
 
-const data = [
-  { service: "General consultation", appointments: 86 },
-  { service: "Dental cleaning", appointments: 62 },
-  { service: "Skin consultation", appointments: 44 },
-  { service: "Follow-up", appointments: 38 },
-];
+type PopularServicesChartProps = {
+  data: {
+    service: string;
+    appointments: number;
+  }[];
+};
 
-export default function PopularServicesChart() {
+export default function PopularServicesChart({
+  data,
+}: PopularServicesChartProps) {
   return (
     <ChartCard
       title="Popular services"
-      description="Appointments by service"
-      className="h-full"
+      description="Most frequently booked clinic services."
+      className="col-span-1"
     >
-      <div className="h-[280px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={data}
-            layout="vertical"
-            margin={{ top: 0, right: 12, left: 8, bottom: 0 }}
-          >
-            <CartesianGrid
-              stroke="#E9EFEB"
-              strokeDasharray="3 3"
-              horizontal={false}
-            />
+      {data.length > 0 ? (
+        <div className="h-[280px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={data}
+              layout="vertical"
+              margin={{ top: 0, right: 15, left: 5, bottom: 0 }}
+            >
+              <CartesianGrid
+                strokeDasharray="3 3"
+                horizontal={false}
+                stroke="#E9EFEB"
+              />
 
-            <XAxis
-              type="number"
-              allowDecimals={false}
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: "#64748B", fontSize: 11 }}
-            />
+              <XAxis
+                type="number"
+                allowDecimals={false}
+                tick={{ fill: "#94A3B8", fontSize: 11 }}
+                axisLine={false}
+                tickLine={false}
+              />
 
-            <YAxis
-              type="category"
-              dataKey="service"
-              width={125}
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: "#64748B", fontSize: 11 }}
-            />
+              <YAxis
+                type="category"
+                dataKey="service"
+                width={110}
+                tick={{ fill: "#64748B", fontSize: 11 }}
+                axisLine={false}
+                tickLine={false}
+              />
 
-            <Tooltip
-              formatter={(value) => [
-                `${value} appointments`,
-                "Total",
-              ]}
-              contentStyle={{
-                borderRadius: 12,
-                border: "1px solid #E2E8F0",
-                fontSize: 12,
-              }}
-            />
+              <Tooltip
+                formatter={(value) => [
+                  `${value} appointments`,
+                  "Bookings",
+                ]}
+                contentStyle={{
+                  borderRadius: 12,
+                  border: "1px solid #E2E8F0",
+                  fontSize: 12,
+                }}
+              />
 
-            <Bar
-              dataKey="appointments"
-              name="Appointments"
-              fill="#176B55"
-              radius={[0, 6, 6, 0]}
-              barSize={22}
-            />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+              <Bar
+                dataKey="appointments"
+                name="Appointments"
+                fill="#176B55"
+                radius={[0, 6, 6, 0]}
+                barSize={22}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      ) : (
+        <EmptyChart />
+      )}
     </ChartCard>
+  );
+}
+
+function EmptyChart() {
+  return (
+    <div className="flex h-[280px] items-center justify-center text-center">
+      <div>
+        <p className="text-sm font-medium text-slate-700">
+          No service bookings available
+        </p>
+        <p className="mt-1 text-xs text-slate-500">
+          Popular services will appear here.
+        </p>
+      </div>
+    </div>
   );
 }

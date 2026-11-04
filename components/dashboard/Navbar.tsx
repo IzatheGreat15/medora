@@ -180,7 +180,7 @@ export default function DashboardNavbar({
       {/* Right */}
       <div className="flex shrink-0 items-center gap-2 sm:gap-4">
         {/* Notifications */}
-        <div ref={notificationRef} className="relative">
+        {/* <div ref={notificationRef} className="relative">
           <button
             type="button"
             aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ""}`}
@@ -202,17 +202,17 @@ export default function DashboardNavbar({
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             )}
-          </button>
+          </button> */}
 
           {/* Dropdown */}
-          {isNotificationsOpen && (
+          {/* {isNotificationsOpen && (
             <div
               role="dialog"
               aria-label="Notifications"
               className="absolute right-0 top-[calc(100%+14px)] z-50 w-[calc(100vw-2rem)] max-w-[390px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-900/10"
-            >
+            > */}
               {/* Header */}
-              <div className="flex items-center justify-between border-b border-slate-100 px-4 py-4 sm:px-5">
+              {/* <div className="flex items-center justify-between border-b border-slate-100 px-4 py-4 sm:px-5">
                 <div>
                   <h2 className="font-semibold text-[#173F35]">
                     Notifications
@@ -233,10 +233,10 @@ export default function DashboardNavbar({
                 >
                   <X size={17} />
                 </button>
-              </div>
+              </div> */}
 
               {/* Mark all as read */}
-              {unreadCount > 0 && (
+              {/* {unreadCount > 0 && (
                 <div className="flex justify-end border-b border-slate-100 px-4 py-2.5 sm:px-5">
                   <button
                     type="button"
@@ -247,10 +247,10 @@ export default function DashboardNavbar({
                     Mark all as read
                   </button>
                 </div>
-              )}
+              )} */}
 
               {/* Notification list */}
-              <div className="max-h-[390px] overflow-y-auto">
+              {/* <div className="max-h-[390px] overflow-y-auto">
                 {notifications.length > 0 ? (
                   notifications.map((notification) => (
                     <button
@@ -310,10 +310,10 @@ export default function DashboardNavbar({
                     </p>
                   </div>
                 )}
-              </div>
+              </div> */}
 
               {/* Footer */}
-              <div className="border-t border-slate-100 p-3">
+              {/* <div className="border-t border-slate-100 p-3">
                 <button
                   type="button"
                   onClick={() => {
@@ -327,7 +327,7 @@ export default function DashboardNavbar({
               </div>
             </div>
           )}
-        </div>
+        </div> */}
 
         <div className="hidden h-8 w-px bg-slate-200 sm:block" />
 

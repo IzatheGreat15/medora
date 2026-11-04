@@ -11,10 +11,12 @@ import {
   ClipboardList,
   Settings,
   HelpCircle,
-  HeartPulse,
   ChevronLeft,
+  LogOut,
 } from "lucide-react";
+
 import { DashboardStaff } from "./DashboardLayoutClient";
+import { logout } from "@/app/actions/auth";
 
 const mainNavigation = [
   {
@@ -88,13 +90,15 @@ export default function DashboardSidebar({
 
   return (
     <aside
-      className={`relative flex h-full shrink-0 flex-col bg-[#173F35] text-white transition-[width] duration-200 ${collapsed ? "w-[76px]" : "w-[260px]"
-        }`}
+      className={`relative flex h-full shrink-0 flex-col bg-[#173F35] text-white transition-[width] duration-200 ${
+        collapsed ? "w-[76px]" : "w-[260px]"
+      }`}
     >
       {/* Brand */}
       <div
-        className={`flex h-[76px] shrink-0 items-center border-b border-white/10 ${collapsed ? "justify-center px-2" : "justify-between px-6"
-          }`}
+        className={`flex h-[76px] shrink-0 items-center border-b border-white/10 ${
+          collapsed ? "justify-center px-2" : "justify-between px-6"
+        }`}
       >
         <Link
           href="/dashboard"
@@ -102,7 +106,7 @@ export default function DashboardSidebar({
           className="flex items-center gap-3 overflow-hidden"
         >
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-[#176B55]">
-            <img src="/logo.webp" />
+            <img src="/logo.webp" alt="Medora logo" />
           </span>
 
           {!collapsed && (
@@ -143,18 +147,20 @@ export default function DashboardSidebar({
                 onClick={onNavigate}
                 title={collapsed ? label : undefined}
                 aria-current={active ? "page" : undefined}
-                className={`group flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${active
+                className={`group flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${
+                  active
                     ? "bg-white/15 text-white shadow-sm"
                     : "text-white/65 hover:bg-white/8 hover:text-white"
-                  } ${collapsed ? "justify-center" : ""}`}
+                } ${collapsed ? "justify-center" : ""}`}
               >
                 <Icon
                   size={19}
                   strokeWidth={active ? 2.2 : 1.8}
-                  className={`shrink-0 ${active
+                  className={`shrink-0 ${
+                    active
                       ? "text-[#B8E6D0]"
                       : "text-white/60 group-hover:text-white"
-                    }`}
+                  }`}
                 />
 
                 {!collapsed && <span>{label}</span>}
@@ -186,10 +192,11 @@ export default function DashboardSidebar({
                 onClick={onNavigate}
                 title={collapsed ? label : undefined}
                 aria-current={active ? "page" : undefined}
-                className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${active
+                className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${
+                  active
                     ? "bg-white/15 text-white"
                     : "text-white/65 hover:bg-white/8 hover:text-white"
-                  } ${collapsed ? "justify-center" : ""}`}
+                } ${collapsed ? "justify-center" : ""}`}
               >
                 <Icon size={19} className="shrink-0" />
                 {!collapsed && <span>{label}</span>}
@@ -199,14 +206,18 @@ export default function DashboardSidebar({
         </nav>
       </div>
 
-      {/* Clinic account card */}
-      {!collapsed && (
-        <div className="shrink-0 border-t border-white/10 p-4">
-          <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-            <p className="truncate text-sm font-semibold">{clinicName}</p>
+      {/* Clinic account and logout */}
+      <div className="shrink-0 border-t border-white/10 p-4">
+        {!collapsed && (
+          <div className="mb-3 rounded-xl border border-white/10 bg-white/5 p-3">
+            <p className="truncate text-sm font-semibold">
+              {clinicName}
+            </p>
+
             <p className="mt-1 text-xs text-white/55">
               Clinic workspace
             </p>
+
             <div className="mt-3 flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-[#82D5AC]" />
               <span className="text-[11px] text-white/65">
@@ -214,8 +225,26 @@ export default function DashboardSidebar({
               </span>
             </div>
           </div>
-        </div>
-      )}
+        )}
+
+        <form action={logout}>
+          <button
+            type="submit"
+            onClick={onNavigate}
+            title={collapsed ? "Log out" : undefined}
+            className={`group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-white/65 transition hover:bg-rose-500/15 hover:text-rose-200 ${
+              collapsed ? "justify-center" : ""
+            }`}
+          >
+            <LogOut
+              size={19}
+              className="shrink-0 transition group-hover:text-rose-300"
+            />
+
+            {!collapsed && <span>Log out</span>}
+          </button>
+        </form>
+      </div>
 
       {/* Expand button when collapsed */}
       {collapsed && (

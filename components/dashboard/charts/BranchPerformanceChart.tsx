@@ -1,6 +1,4 @@
 
-"use client";
-
 import {
   Bar,
   BarChart,
@@ -10,70 +8,87 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+
 import ChartCard from "./ChartCard";
 
-const data = [
-  { branch: "Cebu", appointments: 128 },
-  { branch: "Mandaue", appointments: 94 },
-  { branch: "Lapu-Lapu", appointments: 72 },
-];
+type BranchPerformanceChartProps = {
+  data: {
+    branch: string;
+    appointments: number;
+  }[];
+};
 
-export default function BranchPerformanceChart() {
+export default function BranchPerformanceChart({
+  data,
+}: BranchPerformanceChartProps) {
   return (
     <ChartCard
       title="Branch performance"
-      description="Appointment volume by branch"
-      className="h-full"
+      description="Appointment volume across your clinic branches."
+      className="col-span-1"
     >
-      <div className="h-[280px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={data}
-            margin={{ top: 8, right: 8, left: -18, bottom: 0 }}
-          >
-            <CartesianGrid
-              stroke="#E9EFEB"
-              strokeDasharray="3 3"
-              vertical={false}
-            />
+      {data.length > 0 ? (
+        <div className="h-[280px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={data}
+              margin={{ top: 8, right: 8, left: -20, bottom: 0 }}
+            >
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="#E9EFEB"
+              />
 
-            <XAxis
-              dataKey="branch"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: "#64748B", fontSize: 12 }}
-              dy={8}
-            />
+              <XAxis
+                dataKey="branch"
+                tick={{ fill: "#94A3B8", fontSize: 11 }}
+                axisLine={false}
+                tickLine={false}
+                interval={0}
+              />
 
-            <YAxis
-              allowDecimals={false}
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: "#64748B", fontSize: 12 }}
-            />
+              <YAxis
+                allowDecimals={false}
+                tick={{ fill: "#94A3B8", fontSize: 11 }}
+                axisLine={false}
+                tickLine={false}
+              />
 
-            <Tooltip
-              formatter={(value) => [
-                `${value} appointments`,
-                "Total",
-              ]}
-              contentStyle={{
-                borderRadius: 12,
-                border: "1px solid #E2E8F0",
-                fontSize: 12,
-              }}
-            />
+              <Tooltip
+                formatter={(value) => [
+                  `${value} appointments`,
+                  "Bookings",
+                ]}
+                contentStyle={{
+                  borderRadius: 12,
+                  border: "1px solid #E2E8F0",
+                  fontSize: 12,
+                }}
+              />
 
-            <Bar
-              dataKey="appointments"
-              name="Appointments"
-              fill="#82A995"
-              radius={[6, 6, 0, 0]}
-              barSize={38}
-            />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+              <Bar
+                dataKey="appointments"
+                name="Appointments"
+                fill="#82A995"
+                radius={[6, 6, 0, 0]}
+                barSize={35}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      ) : (
+        <div className="flex h-[280px] items-center justify-center text-center">
+          <div>
+            <p className="text-sm font-medium text-slate-700">
+              No branch bookings available
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              Branch performance will appear here.
+            </p>
+          </div>
+        </div>
+      )}
     </ChartCard>
   );
 }
