@@ -28,6 +28,8 @@ import {
     type DashboardBooking,
 } from "./actions";
 import Toast from "@/components/shared/Toast";
+import type { CalendarEvent } from "@/lib/calendar/types";
+import Calendar from "@/components/calendar/Calendar";
 
 type BookingStatus = "Pending" | "Confirmed" | "Declined" | "Completed";
 
@@ -118,6 +120,15 @@ export default function BookingsPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
 
+    const [viewMode, setViewMode] = useState<"table" | "calendar">("table");
+    const [calendarDate, setCalendarDate] = useState(() => {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, "0");
+        const day = String(now.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+    });
+
     const [isLoading, setIsLoading] = useState(true);
     const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
@@ -190,6 +201,44 @@ export default function BookingsPage() {
             return matchesSearch && matchesStatus && matchesBranch;
         });
     }, [bookings, search, statusFilter, branchFilter]);
+
+    const calendarEvents = useMemo<CalendarEvent[]>(() => {
+        return filteredBookings.map((booking) => {
+            const normalizedTime = booking.time.slice(0, 5);
+            const start = new Date(`${booking.date}T${normalizedTime}:00`);
+            const end = new Date(
+                start.getTime() + Math.max(booking.duration, 1) * 60 * 1000,
+            );
+
+            const toLocalDateTime = (date: Date) => {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, "0");
+                const day = String(date.getDate()).padStart(2, "0");
+                const hours = String(date.getHours()).padStart(2, "0");
+                const minutes = String(date.getMinutes()).padStart(2, "0");
+                return `${year}-${month}-${day}T${hours}:${minutes}:00`;
+            };
+
+            const statusMap: Record<BookingStatus, NonNullable<CalendarEvent["status"]>> = {
+                Pending: "pending",
+                Confirmed: "confirmed",
+                Declined: "rejected",
+                Completed: "completed",
+            };
+
+            return {
+                id: booking.id,
+                title: booking.patient,
+                startAt: toLocalDateTime(start),
+                endAt: toLocalDateTime(end),
+                type: "appointment",
+                status: statusMap[booking.status],
+                personName: booking.doctor,
+                serviceName: booking.service,
+                description: `${booking.branch} · ${booking.patient}`,
+            };
+        });
+    }, [filteredBookings]);
 
     const counts = useMemo(
         () => ({
@@ -370,6 +419,35 @@ export default function BookingsPage() {
                     </p>
 
                     <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2 sm:gap-3">
+                        <div className="flex shrink-0 rounded-xl border border-slate-200 bg-slate-50 p-1">
+                            <button
+                                type="button"
+                                onClick={() => setViewMode("table")}
+                                aria-pressed={viewMode === "table"}
+                                className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition ${
+                                    viewMode === "table"
+                                        ? "bg-white text-[#176B55] shadow-sm"
+                                        : "text-slate-500 hover:text-[#176B55]"
+                                }`}
+                            >
+                                <ClipboardList size={15} />
+                                Table
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setViewMode("calendar")}
+                                aria-pressed={viewMode === "calendar"}
+                                className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition ${
+                                    viewMode === "calendar"
+                                        ? "bg-white text-[#176B55] shadow-sm"
+                                        : "text-slate-500 hover:text-[#176B55]"
+                                }`}
+                            >
+                                <CalendarDays size={15} />
+                                Calendar
+                            </button>
+                        </div>
+
                         <div className="relative min-w-[140px] flex-1 sm:max-w-xs">
                             <Search
                                 size={18}
@@ -470,10 +548,50 @@ export default function BookingsPage() {
                     </div>
                 )}
 
-                {/* Table */}
+                {/* Calendar / table view */}
                 {(!isLoading || bookings.length > 0) && (
-                    <>
-                        <div className="overflow-x-auto">
+                    viewMode === "calendar" ? (
+                        <Calendar
+                            events={calendarEvents}
+                            date={calendarDate}
+                            onDateChange={setCalendarDate}
+                            onEventClick={(event) => {
+                                const booking = filteredBookings.find(
+                                    (item) => item.id === event.id,
+                                );
+                                if (booking) openBooking(booking);
+                            }}
+                            startHour={7}
+                            endHour={20}
+                            showPerson
+                            showStatus
+                            defaultView="week"
+                            legendItems={[
+                                {
+                                    status: "pending",
+                                    label: "Pending",
+                                    className: "border-amber-500 bg-amber-50 text-amber-700",
+                                },
+                                {
+                                    status: "confirmed",
+                                    label: "Confirmed",
+                                    className: "border-emerald-500 bg-emerald-50 text-emerald-700",
+                                },
+                                {
+                                    status: "rejected",
+                                    label: "Declined",
+                                    className: "border-rose-500 bg-rose-50 text-rose-700",
+                                },
+                                {
+                                    status: "completed",
+                                    label: "Completed",
+                                    className: "border-slate-400 bg-slate-100 text-slate-600",
+                                },
+                            ]}
+                        />
+                    ) : (
+                        <>
+                            <div className="overflow-x-auto">
                             <table className="w-full min-w-[900px] text-left">
                                 <thead>
                                     <tr className="border-y border-slate-100 bg-slate-50/80">
@@ -666,7 +784,8 @@ export default function BookingsPage() {
                                 </button>
                             </div>
                         </div>
-                    </>
+                        </>
+                    )
                 )}
             </section>
 

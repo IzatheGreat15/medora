@@ -504,7 +504,7 @@ export default function Home() {
               Sign in
             </Link>
             <Link
-              href="/signup"
+              href="/login"
               className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-dark"
             >
               Get started <ArrowRight size={16} />
@@ -512,7 +512,7 @@ export default function Home() {
           </div>
 
           <Link
-            href="/signup"
+            href="/login"
             aria-label="Get started"
             className="rounded-xl bg-brand p-2.5 text-white sm:hidden"
           >
@@ -713,7 +713,7 @@ export default function Home() {
               </p>
 
               <Link
-                href="/signup"
+                href="/login"
                 className="mt-8 inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-dark"
               >
                 Get started <ArrowRight size={16} />
@@ -1040,7 +1040,7 @@ export default function Home() {
                     </ul>
 
                     <Link
-                      href="/signup"
+                      href="/login"
                       className={`mt-8 inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-sm font-bold transition ${isFeatured
                         ? "bg-brand text-white hover:bg-brand-dark"
                         : "border border-slate-300 bg-white text-brand-dark hover:border-brand hover:bg-brand-light/40"
@@ -1102,7 +1102,7 @@ export default function Home() {
                 and give patients a better booking experience.
               </p>
               <Link
-                href="/signup"
+                href="/login"
                 className="mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3.5 font-bold text-brand-dark transition hover:bg-brand-light"
               >
                 Get started <ArrowRight size={18} />

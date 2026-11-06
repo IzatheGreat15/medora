@@ -18,6 +18,7 @@ import DoctorsTable, {
     type DoctorTableItem,
 } from "@/components/doctor/DoctorsTable";
 import DeleteConfirmModal from "@/components/shared/DeleteConfirmModal";
+import type { CalendarEvent } from "@/lib/calendar/types";
 
 import {
     createDoctor,
@@ -25,9 +26,12 @@ import {
     getDoctorBranchOptions,
     getDoctors,
     getDoctorLimit,
+    getDoctorSchedules,
+    type DoctorScheduleItem,
     type DoctorBranchOption,
     type DoctorStatus,
 } from "./actions";
+import Calendar from "@/components/calendar/Calendar";
 
 function MetricCard({
     title,
@@ -362,12 +366,33 @@ function AddDoctorModal({
     );
 }
 
+const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] as const;
+
+function getLocalDateKey(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+}
+
+function formatScheduleTime(value: string): string {
+    const [hours, minutes] = value.slice(0, 5).split(":").map(Number);
+    return new Date(2000, 0, 1, hours, minutes).toLocaleTimeString("en-PH", {
+        hour: "numeric", minute: "2-digit", hour12: true,
+    });
+}
+
 export default function DoctorsPage() {
     const router = useRouter();
 
     const [doctors, setDoctors] = useState<DoctorTableItem[]>([]);
     const [branches, setBranches] = useState<DoctorBranchOption[]>([]);
     const [doctorLimit, setDoctorLimit] = useState<number>(0);
+    const [doctorSchedules, setDoctorSchedules] = useState<DoctorScheduleItem[]>([]);
+    const [viewMode, setViewMode] = useState<"table" | "calendar">("table");
+    const [calendarDate, setCalendarDate] = useState(() => getLocalDateKey(new Date()));
+    const [scheduleDoctorFilter, setScheduleDoctorFilter] = useState("all");
+    const [scheduleBranchFilter, setScheduleBranchFilter] = useState("all");
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [doctorToDelete, setDoctorToDelete] =
         useState<DoctorTableItem | null>(null);
@@ -381,15 +406,17 @@ export default function DoctorsPage() {
         setPageError("");
 
         try {
-            const [doctorData, branchData, limitResult] = await Promise.all([
+            const [doctorData, branchData, limitResult, scheduleData] = await Promise.all([
                 getDoctors(),
                 getDoctorBranchOptions(),
                 getDoctorLimit(),
+                getDoctorSchedules(),
             ]);
 
             setDoctors(doctorData);
             setBranches(branchData);
             setDoctorLimit(limitResult);
+            setDoctorSchedules(scheduleData);
         } catch (err) {
             setPageError(
                 err instanceof Error ? err.message : "Unable to load doctors.",
@@ -427,6 +454,44 @@ export default function DoctorsPage() {
     // A limit of -1 means unlimited. Count inactive doctors too.
     const canAddDoctor =
         doctorLimit === -1 || doctors.length < doctorLimit;
+
+    const filteredSchedules = useMemo(() => doctorSchedules.filter((item) =>
+        (scheduleDoctorFilter === "all" || item.doctorId === scheduleDoctorFilter) &&
+        (scheduleBranchFilter === "all" || item.branchId === scheduleBranchFilter)
+    ), [doctorSchedules, scheduleDoctorFilter, scheduleBranchFilter]);
+
+    const calendarEvents = useMemo<CalendarEvent[]>(() => {
+        const [year, month, day] = calendarDate.split("-").map(Number);
+        const selected = new Date(year, month - 1, day, 12);
+        const mondayOffset = (selected.getDay() + 6) % 7;
+        const monday = new Date(selected);
+        monday.setDate(monday.getDate() - mondayOffset);
+
+        return filteredSchedules.flatMap((schedule) => {
+            const matchingDate = new Date(monday);
+            matchingDate.setDate(matchingDate.getDate() + ((schedule.dayOfWeek + 6) % 7));
+            const dateKey = getLocalDateKey(matchingDate);
+            const startTime = schedule.startTime.slice(0, 5);
+            const endTime = schedule.endTime.slice(0, 5);
+            return [{
+                id: schedule.id,
+                title: schedule.doctorName,
+                startAt: `${dateKey}T${startTime}:00`,
+                endAt: `${dateKey}T${endTime}:00`,
+                type: "working_hours" as const,
+                status: "available" as const,
+                personName: schedule.branchName,
+                serviceName: schedule.specialty,
+                branchId: schedule.branchId,
+                resourceId: schedule.doctorId,
+                description: `${schedule.doctorName} · ${schedule.branchName}`,
+            }];
+        });
+    }, [filteredSchedules, calendarDate]);
+
+    const scheduleDoctors = useMemo(() =>
+        [...new Map(doctorSchedules.map((item) => [item.doctorId, { id: item.doctorId, name: item.doctorName }])).values()]
+            .sort((a, b) => a.name.localeCompare(b.name)), [doctorSchedules]);
 
     async function handleAddDoctor(input: {
         name: string;
@@ -552,15 +617,27 @@ export default function DoctorsPage() {
             </section>
 
             <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-                {isLoading ? (
-                    <div className="p-8 text-center flex justify-center gap-2 text-sm text-slate-500">
-                        <LoaderCircle
-                        size={22}
-                        className="animate-spin text-emerald-600"
-                      />
-                        Loading doctors...
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 sm:px-5">
+                    <div>
+                        <h2 className="text-sm font-semibold text-[#173F35]">Doctor management</h2>
+                        <p className="mt-0.5 text-xs text-slate-500">Manage doctor profiles or review clinic-wide working hours.</p>
                     </div>
-                ) : (
+                    <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
+                        <button type="button" onClick={() => setViewMode("table")} aria-pressed={viewMode === "table"} className={`rounded-md px-3 py-2 text-xs font-semibold transition ${viewMode === "table" ? "bg-white text-[#176B55] shadow-sm" : "text-slate-500 hover:text-[#176B55]"}`}>
+                            Table
+                        </button>
+                        <button type="button" onClick={() => setViewMode("calendar")} aria-pressed={viewMode === "calendar"} className={`rounded-md px-3 py-2 text-xs font-semibold transition ${viewMode === "calendar" ? "bg-white text-[#176B55] shadow-sm" : "text-slate-500 hover:text-[#176B55]"}`}>
+                            Calendar
+                        </button>
+                    </div>
+                </div>
+
+                {isLoading ? (
+                    <div className="flex justify-center gap-2 p-8 text-sm text-slate-500">
+                        <LoaderCircle size={22} className="animate-spin text-emerald-600" />
+                        Loading doctors and schedules...
+                    </div>
+                ) : viewMode === "table" ? (
                     <DoctorsTable
                         doctors={doctors}
                         showBranch
@@ -569,12 +646,82 @@ export default function DoctorsPage() {
                         emptyMessage="No doctors found."
                         onDoctorEdit={handleEditDoctor}
                         onDoctorDelete={(doctor) => setDoctorToDelete(doctor)}
-                        onDoctorAdd={
-                            canAddDoctor
-                                ? () => setIsAddModalOpen(true)
-                                : undefined
-                        }
+                        onDoctorAdd={canAddDoctor ? () => setIsAddModalOpen(true) : undefined}
                     />
+                ) : (
+                    <div className="space-y-4 p-4 sm:p-5">
+                        <div className="flex flex-wrap items-end gap-3">
+                            <div className="min-w-[190px] flex-1">
+                                <label htmlFor="schedule-doctor-filter" className="mb-1.5 block text-xs font-medium text-slate-600">Doctor</label>
+                                <select id="schedule-doctor-filter" value={scheduleDoctorFilter} onChange={(event) => setScheduleDoctorFilter(event.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-[#82A995]">
+                                    <option value="all">All doctors</option>
+                                    {scheduleDoctors.map((doctor) => <option key={doctor.id} value={doctor.id}>{doctor.name}</option>)}
+                                </select>
+                            </div>
+                            <div className="min-w-[190px] flex-1">
+                                <label htmlFor="schedule-branch-filter" className="mb-1.5 block text-xs font-medium text-slate-600">Branch</label>
+                                <select id="schedule-branch-filter" value={scheduleBranchFilter} onChange={(event) => setScheduleBranchFilter(event.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-[#82A995]">
+                                    <option value="all">All branches</option>
+                                    {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
+                                </select>
+                            </div>
+                            <div className="text-xs text-slate-500">{filteredSchedules.length} working-hour {filteredSchedules.length === 1 ? "entry" : "entries"}</div>
+                        </div>
+
+                        {filteredSchedules.length === 0 ? (
+                            <div className="rounded-xl border border-dashed border-slate-200 px-4 py-10 text-center">
+                                <p className="text-sm font-semibold text-slate-700">No working hours found</p>
+                                <p className="mt-1 text-xs text-slate-500">Assign doctors to branches and configure their working hours to see them here.</p>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="overflow-hidden rounded-xl border border-slate-200">
+                                    <Calendar
+                                        events={calendarEvents}
+                                        date={calendarDate}
+                                        onDateChange={setCalendarDate}
+                                        startHour={7}
+                                        endHour={20}
+                                        showPerson
+                                        defaultView="week"
+                                        eventTypeLabels={{ working_hours: "Working hours" }}
+                                        legendItems={[{ status: "available", label: "Working hours", className: "border-l-emerald-500 bg-emerald-50 text-emerald-900" }]}
+                                    />
+                                </div>
+
+                                <div className="overflow-hidden rounded-xl border border-slate-200">
+                                    <div className="border-b border-slate-100 px-4 py-3">
+                                        <h3 className="text-sm font-semibold text-[#173F35]">Recurring working hours</h3>
+                                        <p className="mt-0.5 text-xs text-slate-500">These hours repeat every week until the schedule is changed.</p>
+                                    </div>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full min-w-[680px] text-left text-sm">
+                                            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                                                <tr>
+                                                    <th className="px-4 py-3 font-semibold">Doctor</th>
+                                                    <th className="px-4 py-3 font-semibold">Branch</th>
+                                                    <th className="px-4 py-3 font-semibold">Day</th>
+                                                    <th className="px-4 py-3 font-semibold">Start</th>
+                                                    <th className="px-4 py-3 font-semibold">End</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {[...filteredSchedules].sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.startTime.localeCompare(b.startTime) || a.doctorName.localeCompare(b.doctorName)).map((schedule) => (
+                                                    <tr key={schedule.id} className="hover:bg-slate-50/70">
+                                                        <td className="whitespace-nowrap px-4 py-3"><p className="font-medium text-slate-800">{schedule.doctorName}</p><p className="text-xs text-slate-500">{schedule.specialty}</p></td>
+                                                        <td className="whitespace-nowrap px-4 py-3 text-slate-600">{schedule.branchName}</td>
+                                                        <td className="whitespace-nowrap px-4 py-3 text-slate-600">{DAY_NAMES[schedule.dayOfWeek] ?? "—"}</td>
+                                                        <td className="whitespace-nowrap px-4 py-3 text-slate-600">{formatScheduleTime(schedule.startTime)}</td>
+                                                        <td className="whitespace-nowrap px-4 py-3 text-slate-600">{formatScheduleTime(schedule.endTime)}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </div>
                 )}
             </section>
 

@@ -33,6 +33,19 @@ export type CreateDoctorInput = {
   branchIds: string[];
 };
 
+export type DoctorScheduleItem = {
+  id: string;
+  doctorId: string;
+  doctorName: string;
+  specialty: string;
+  branchId: string;
+  branchName: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+};
+
+
 export async function getDoctors(): Promise<DoctorTableItem[]> {
   const { clinicId } = await requireClinicUser();
   const supabase = createSupabaseAdmin();
@@ -313,4 +326,84 @@ export async function getDoctorLimit(): Promise<number> {
   if (planError) throw new Error(planError.message);
 
   return plan.max_doctors ?? 0;
+}
+
+export async function getDoctorSchedules(): Promise<DoctorScheduleItem[]> {
+  const { clinicId } = await requireClinicUser();
+  const supabase = createSupabaseAdmin();
+
+  const { data: assignments, error: assignmentsError } = await supabase
+    .from("doctor_branches")
+    .select("id, doctor_id, branch_id")
+    .eq("clinic_id", clinicId);
+
+  if (assignmentsError) {
+    console.error("Failed to fetch doctor schedule assignments:", assignmentsError.message);
+    throw new Error("Unable to load doctor schedules.");
+  }
+
+  if (!assignments?.length) return [];
+
+  const assignmentIds = assignments.map((item) => item.id);
+  const doctorIds = [...new Set(assignments.map((item) => item.doctor_id))];
+  const branchIds = [...new Set(assignments.map((item) => item.branch_id))];
+
+  const [hoursResult, doctorsResult, branchesResult] = await Promise.all([
+    supabase
+      .from("doctor_working_hours")
+      .select("id, doctor_branch_id, day_of_week, start_time, end_time")
+      .in("doctor_branch_id", assignmentIds),
+    supabase
+      .from("doctors")
+      .select("id, name, specialty")
+      .eq("clinic_id", clinicId)
+      .in("id", doctorIds),
+    supabase
+      .from("branches")
+      .select("id, name")
+      .eq("clinic_id", clinicId)
+      .in("id", branchIds),
+  ]);
+
+  if (hoursResult.error) {
+    console.error("Failed to fetch doctor working hours:", hoursResult.error.message);
+    throw new Error("Unable to load doctor working hours.");
+  }
+  if (doctorsResult.error) {
+    console.error("Failed to fetch schedule doctors:", doctorsResult.error.message);
+    throw new Error("Unable to load doctors for the schedule.");
+  }
+  if (branchesResult.error) {
+    console.error("Failed to fetch schedule branches:", branchesResult.error.message);
+    throw new Error("Unable to load branches for the schedule.");
+  }
+
+  const assignmentById = new Map(assignments.map((item) => [item.id, item]));
+  const doctorById = new Map((doctorsResult.data ?? []).map((item) => [item.id, item]));
+  const branchById = new Map((branchesResult.data ?? []).map((item) => [item.id, item]));
+
+  return (hoursResult.data ?? []).flatMap((hours) => {
+    const assignment = assignmentById.get(hours.doctor_branch_id);
+    if (!assignment) return [];
+
+    const doctor = doctorById.get(assignment.doctor_id);
+    const branch = branchById.get(assignment.branch_id);
+    if (!doctor || !branch) return [];
+
+    return [{
+      id: hours.id,
+      doctorId: doctor.id,
+      doctorName: doctor.name,
+      specialty: doctor.specialty ?? "",
+      branchId: branch.id,
+      branchName: branch.name,
+      dayOfWeek: Number(hours.day_of_week),
+      startTime: hours.start_time,
+      endTime: hours.end_time,
+    }];
+  }).sort((a, b) =>
+    a.dayOfWeek - b.dayOfWeek ||
+    a.startTime.localeCompare(b.startTime) ||
+    a.doctorName.localeCompare(b.doctorName)
+  );
 }
