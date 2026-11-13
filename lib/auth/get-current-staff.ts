@@ -5,8 +5,9 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
 import { DashboardStaff } from "@/components/dashboard/DashboardLayoutClient";
+import { cache } from "react";
 
-export async function getCurrentStaff() {
+export const getCurrentStaff = cache(async (): Promise<{ user: any; staff: DashboardStaff }> => {
   const supabase = await createSupabaseServerClient();
 
   const {
@@ -89,4 +90,4 @@ export async function getCurrentStaff() {
     user,
     staff: clinicStaff,
   };
-}
+});

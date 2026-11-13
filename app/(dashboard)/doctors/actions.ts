@@ -50,72 +50,40 @@ export async function getDoctors(): Promise<DoctorTableItem[]> {
   const { clinicId } = await requireClinicUser();
   const supabase = createSupabaseAdmin();
 
-  const { data: doctorRows, error: doctorsError } = await supabase
+  const { data, error } = await supabase
     .from("doctors")
-    .select("id, name, specialty, email, phone, status")
+    .select(`
+      id,
+      name,
+      specialty,
+      email,
+      phone,
+      status,
+      doctor_branches!inner (
+        branches (
+          id,
+          name
+        )
+      )
+    `)
     .eq("clinic_id", clinicId)
     .order("name");
 
-  if (doctorsError) {
-    console.error("Failed to fetch doctors:", doctorsError.message);
+  if (error) {
+    console.error("Failed to load doctors:", error.message);
     throw new Error("Unable to load doctors.");
   }
 
-  if (!doctorRows?.length) return [];
-
-  const doctorIds = doctorRows.map((doctor) => doctor.id);
-
-  const { data: assignments, error: assignmentsError } = await supabase
-    .from("doctor_branches")
-    .select("doctor_id, branch_id")
-    .eq("clinic_id", clinicId)
-    .in("doctor_id", doctorIds);
-
-  if (assignmentsError) {
-    console.error("Failed to fetch doctor branches:", assignmentsError.message);
-    throw new Error("Unable to load doctor branch assignments.");
-  }
-
-  const branchIds = [...new Set((assignments ?? []).map((item) => item.branch_id))];
-
-  let branchNames = new Map<string, string>();
-
-  if (branchIds.length) {
-    const { data: branchRows, error: branchesError } = await supabase
-      .from("branches")
-      .select("id, name")
-      .eq("clinic_id", clinicId)
-      .in("id", branchIds);
-
-    if (branchesError) {
-      console.error("Failed to fetch branches:", branchesError.message);
-      throw new Error("Unable to load branch names.");
-    }
-
-    branchNames = new Map(
-      (branchRows ?? []).map((branch) => [branch.id, branch.name]),
-    );
-  }
-
-  const branchesByDoctor = new Map<string, string[]>();
-
-  for (const assignment of assignments ?? []) {
-    const branchName = branchNames.get(assignment.branch_id);
-    if (!branchName) continue;
-
-    const current = branchesByDoctor.get(assignment.doctor_id) ?? [];
-    current.push(branchName);
-    branchesByDoctor.set(assignment.doctor_id, current);
-  }
-
-  return doctorRows.map((doctor) => ({
+  return (data ?? []).map((doctor) => ({
     id: doctor.id,
     name: doctor.name,
     specialty: doctor.specialty,
     email: doctor.email,
     phone: doctor.phone ?? "",
     status: doctor.status as DoctorStatus,
-    branches: branchesByDoctor.get(doctor.id) ?? [],
+    branches: (doctor.doctor_branches ?? [])
+      .map((assignment) => assignment.branches?.name)
+      .filter((name): name is string => Boolean(name)),
   }));
 }
 

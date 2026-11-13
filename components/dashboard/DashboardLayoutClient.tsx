@@ -5,16 +5,10 @@ import { Suspense, useState } from "react";
 import { usePathname } from "next/navigation";
 import DashboardSidebar from "@/components/dashboard/Sidebar";
 import DashboardNavbar from "@/components/dashboard/Navbar";
+import AuthProvider from "@/components/providers/AuthProvider";
+import type { DashboardStaff } from "@/lib/auth/types";
 
-export type DashboardStaff = {
-  id: string;
-  first_name: string;
-  last_name: string;
-  role: "clinic_user";
-  clinic_role: "owner" | "manager" | "staff";
-  clinic_id: string;
-  clinic_name: string;
-};
+export type { DashboardStaff } from "@/lib/auth/types";
 
 export default function DashboardLayoutClient({
   children,
@@ -31,6 +25,7 @@ export default function DashboardLayoutClient({
   }
 
   return (
+    <AuthProvider initialStaff={staff}>
     <div className="min-h-screen bg-[#F7F9F6]">
       <div className="flex min-h-screen">
         {/* Desktop sidebar */}
@@ -91,7 +86,8 @@ export default function DashboardLayoutClient({
           </main>
         </div>
       </div>
-    </div>
+      </div>
+    </AuthProvider>
   );
 }
 
