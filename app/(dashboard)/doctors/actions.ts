@@ -45,40 +45,56 @@ export type DoctorScheduleItem = {
   endTime: string;
 };
 
+type DoctorWithBranches = {
+  id: string;
+  name: string;
+  specialty: string | null;
+  email: string | null;
+  phone: string | null;
+  status: string;
+  doctor_branches: {
+    branches: {
+      id: string;
+      name: string;
+    } | null;
+  }[] | null;
+};
 
 export async function getDoctors(): Promise<DoctorTableItem[]> {
   const { clinicId } = await requireClinicUser();
   const supabase = createSupabaseAdmin();
 
   const { data, error } = await supabase
-    .from("doctors")
-    .select(`
-      id,
-      name,
-      specialty,
-      email,
-      phone,
-      status,
-      doctor_branches!inner (
-        branches (
-          id,
-          name
-        )
+  .from("doctors")
+  .select(`
+    id,
+    name,
+    specialty,
+    email,
+    phone,
+    status,
+    doctor_branches (
+      branches (
+        id,
+        name
       )
-    `)
-    .eq("clinic_id", clinicId)
-    .order("name");
+    )
+  `)
+  .eq("clinic_id", clinicId)
+  .order("name");
 
   if (error) {
     console.error("Failed to load doctors:", error.message);
     throw new Error("Unable to load doctors.");
   }
 
-  return (data ?? []).map((doctor) => ({
+  const doctors = (data ?? []) as unknown as DoctorWithBranches[];
+
+  return doctors.map((doctor) => ({
     id: doctor.id,
     name: doctor.name,
-    specialty: doctor.specialty,
-    email: doctor.email,
+    specialty: doctor.specialty ?? "",
+    email: doctor.email ?? "",
     phone: doctor.phone ?? "",
     status: doctor.status as DoctorStatus,
     branches: (doctor.doctor_branches ?? [])
