@@ -1015,28 +1015,6 @@ export default function Home() {
                           </span>
                         </li>
                       ))}
-
-                      <li className="flex items-start gap-3">
-                        <Check
-                          size={18}
-                          className="mt-0.5 shrink-0 text-brand"
-                        />
-                        <span className="text-sm text-slate-700">
-                          Up to {plan.max_doctors}{" "}
-                          {plan.max_doctors === 1 ? "doctor" : "doctors"}
-                        </span>
-                      </li>
-
-                      <li className="flex items-start gap-3">
-                        <Check
-                          size={18}
-                          className="mt-0.5 shrink-0 text-brand"
-                        />
-                        <span className="text-sm text-slate-700">
-                          Up to {plan.max_branches}{" "}
-                          {plan.max_branches === 1 ? "branch" : "branches"}
-                        </span>
-                      </li>
                     </ul>
 
                     <Link

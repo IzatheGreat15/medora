@@ -230,7 +230,6 @@ export default function DashboardSidebar({
         <form action={logout}>
           <button
             type="submit"
-            onClick={onNavigate}
             title={collapsed ? "Log out" : undefined}
             className={`group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-white/65 transition hover:bg-rose-500/15 hover:text-rose-200 ${
               collapsed ? "justify-center" : ""
