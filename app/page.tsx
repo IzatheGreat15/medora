@@ -504,10 +504,10 @@ export default function Home() {
               Sign in
             </Link>
             <Link
-              href="/login"
+              href="https://calendly.com/medoraapp-ph/product-demo?fbclid=IwY2xjawVmOYxleHRuA2FlbQIxMQBwZG9mA3NydGMGYXBwX2lkATAAAR-VHgBoW9nLvDdU_yUCfmtY__Nr7w8OwVXBb_KUMXGimML6fU27n7iFxxPZ_g_aem_E7nfRuUp9VrDjaVs31cKEw"
               className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-dark"
             >
-              Get started <ArrowRight size={16} />
+              Talk to Us <ArrowRight size={16} />
             </Link>
           </div>
 
@@ -562,20 +562,13 @@ export default function Home() {
 
             <div className="mt-8 flex flex-wrap gap-3">
               <a
-                href="https://forms.gle/vG84rE2R7oKT7DBu6"
+                href="https://calendly.com/medoraapp-ph/product-demo?fbclid=IwY2xjawVmOYxleHRuA2FlbQIxMQBwZG9mA3NydGMGYXBwX2lkATAAAR-VHgBoW9nLvDdU_yUCfmtY__Nr7w8OwVXBb_KUMXGimML6fU27n7iFxxPZ_g_aem_E7nfRuUp9VrDjaVs31cKEw"
                 target="_blank"
                 className="inline-flex items-center gap-2 rounded-xl bg-[#176B55] px-6 py-4 font-semibold text-white shadow-lg shadow-[#176B55]/20 transition hover:-translate-y-0.5 hover:bg-[#173F35]"
               >
                 {/* Simplify appointment booking <ArrowRight size={18} /> */}
-                Join the Pilot Program <ArrowRight size={18} />
+                Book a Free Demo <ArrowRight size={18} />
               </a>
-
-              <Link
-                href="#problem"
-                className="inline-flex items-center gap-2 rounded-xl border border-[#C9D8CF] bg-white/90 px-6 py-4 font-semibold text-[#173F35] transition hover:bg-white"
-              >
-                See what changes <ChevronRight size={18} />
-              </Link>
             </div>
 
             <div className="mt-8 flex flex-wrap gap-x-5 gap-y-3 text-sm font-medium text-slate-600">
