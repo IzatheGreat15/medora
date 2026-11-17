@@ -150,3 +150,92 @@ export async function saveClinicSettings(input: ClinicSettingsInput) {
 
   return { logo: logoUrl };
 }
+
+
+export type ClinicEmailTemplate = {
+  id: string;
+  clinic_id: string | null;
+  code: string;
+  name: string;
+  description: string | null;
+  is_active: boolean;
+  is_customized: boolean;
+};
+
+export async function getClinicEmailTemplates(): Promise<ClinicEmailTemplate[]> {
+  const { admin, clinicId } = await getAuthorizedClinic();
+
+  const { data, error } = await admin
+    .from("email_templates")
+    .select("id, clinic_id, code, name, description, is_active")
+    .or(`clinic_id.is.null,clinic_id.eq.${clinicId}`)
+    .order("name");
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const globalTemplates = (data ?? []).filter(
+    (template) => template.clinic_id === null
+  );
+
+  const clinicTemplates = (data ?? []).filter(
+    (template) => template.clinic_id === clinicId
+  );
+
+  const clinicTemplateMap = new Map(
+    clinicTemplates.map((template) => [template.code, template])
+  );
+
+  return globalTemplates.map((globalTemplate) => {
+    const clinicTemplate = clinicTemplateMap.get(globalTemplate.code);
+    const effectiveTemplate = clinicTemplate ?? globalTemplate;
+
+    return {
+      id: effectiveTemplate.id,
+      clinic_id: effectiveTemplate.clinic_id,
+      code: globalTemplate.code,
+      name: globalTemplate.name,
+      description: globalTemplate.description,
+      is_active: effectiveTemplate.is_active,
+      is_customized: Boolean(clinicTemplate),
+    };
+  });
+}
+
+export async function resetClinicEmailTemplate(code: string) {
+  const { admin, clinicId } = await getAuthorizedClinic();
+
+  if (!code || code.length > 100) {
+    throw new Error("Invalid email template.");
+  }
+
+  // Verify that this template exists globally.
+  const { data: defaultTemplate, error: defaultError } = await admin
+    .from("email_templates")
+    .select("id")
+    .eq("code", code)
+    .is("clinic_id", null)
+    .maybeSingle();
+
+  if (defaultError) {
+    throw new Error(defaultError.message);
+  }
+
+  if (!defaultTemplate) {
+    throw new Error("Default email template not found.");
+  }
+
+  // Delete only the current clinic's override.
+  const { error: deleteError } = await admin
+    .from("email_templates")
+    .delete()
+    .eq("clinic_id", clinicId)
+    .eq("code", code);
+
+  if (deleteError) {
+    throw new Error(deleteError.message);
+  }
+
+  return { success: true };
+}

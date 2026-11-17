@@ -28,6 +28,7 @@ import {
   saveClinicSettings,
   type ClinicNotificationPreference,
 } from "@/components/settings/settings-data-actions";
+import EmailTemplatesSection from "@/components/settings/email-templates/EmailTemplatesSection";
 
 type NotificationEvent = {
   id: string;
@@ -555,6 +556,8 @@ export default function SettingsPage() {
           </div>
         </div>
       </section>
+
+      <EmailTemplatesSection />
 
       {/* Staff section is maintained as a separate component */}
       <StaffSection />
