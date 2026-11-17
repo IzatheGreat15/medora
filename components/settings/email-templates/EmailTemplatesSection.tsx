@@ -1,7 +1,13 @@
 
 "use client";
 
-import { useCallback, useEffect, useState, useTransition } from "react";
+import {
+    useCallback,
+    useEffect,
+    useState,
+    useTransition,
+} from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
     Mail,
@@ -10,6 +16,8 @@ import {
     Pencil,
     RotateCcw,
     Loader2,
+    AlertTriangle,
+    X,
 } from "lucide-react";
 
 import {
@@ -34,9 +42,16 @@ export default function EmailTemplatesSection() {
     const [isPending, startTransition] = useTransition();
     const [resettingCode, setResettingCode] = useState<string | null>(null);
     const [toast, setToast] = useState<ToastState>(null);
+    const [templateToReset, setTemplateToReset] =
+        useState<ClinicEmailTemplate | null>(null);
+    const [isMounted, setIsMounted] = useState(false);
 
     const closeToast = useCallback(() => {
         setToast(null);
+    }, []);
+
+    useEffect(() => {
+        setIsMounted(true);
     }, []);
 
     useEffect(() => {
@@ -75,6 +90,23 @@ export default function EmailTemplatesSection() {
         };
     }, []);
 
+    // Close modal with Escape
+    useEffect(() => {
+        if (!templateToReset || isPending) return;
+
+        function handleKeyDown(event: KeyboardEvent) {
+            if (event.key === "Escape") {
+                setTemplateToReset(null);
+            }
+        }
+
+        window.addEventListener("keydown", handleKeyDown);
+
+        return () => {
+            window.removeEventListener("keydown", handleKeyDown);
+        };
+    }, [templateToReset, isPending]);
+
     const filteredTemplates = templates.filter((template) => {
         const searchValue = search.toLowerCase();
 
@@ -100,11 +132,13 @@ export default function EmailTemplatesSection() {
     function handleReset(template: ClinicEmailTemplate) {
         if (!template.is_customized || isPending) return;
 
-        const confirmed = window.confirm(
-            `Reset "${template.name}" to its default template? Your clinic's customized version will be removed.`
-        );
+        setTemplateToReset(template);
+    }
 
-        if (!confirmed) return;
+    function confirmReset() {
+        if (!templateToReset || isPending) return;
+
+        const template = templateToReset;
 
         setToast(null);
         setResettingCode(template.code);
@@ -116,11 +150,12 @@ export default function EmailTemplatesSection() {
                 const updatedTemplates = await getClinicEmailTemplates();
 
                 setTemplates(updatedTemplates);
-
                 setToast({
                     type: "success",
                     message: `${template.name} has been reset to its default.`,
                 });
+
+                setTemplateToReset(null);
             } catch (error) {
                 console.error("Failed to reset email template:", error);
 
@@ -133,6 +168,7 @@ export default function EmailTemplatesSection() {
                 });
             } finally {
                 setResettingCode(null);
+                setTemplateToReset(null);
             }
         });
     }
@@ -275,18 +311,23 @@ export default function EmailTemplatesSection() {
                                         <td className="px-4 py-5">
                                             <div className="flex flex-col items-start gap-2">
                                                 <span
-                                                    className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium ${template.is_active
+                                                    className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium ${
+                                                        template.is_active
                                                             ? "bg-[#DDF3E7] text-[#176B55]"
                                                             : "bg-slate-100 text-slate-500"
-                                                        }`}
+                                                    }`}
                                                 >
                                                     <span
-                                                        className={`h-2 w-2 rounded-full ${template.is_active
+                                                        className={`h-2 w-2 rounded-full ${
+                                                            template.is_active
                                                                 ? "bg-[#176B55]"
                                                                 : "bg-slate-400"
-                                                            }`}
+                                                        }`}
                                                     />
-                                                    {template.is_active ? "Active" : "Inactive"}
+
+                                                    {template.is_active
+                                                        ? "Active"
+                                                        : "Inactive"}
                                                 </span>
 
                                                 <span className="text-xs text-slate-500">
@@ -308,7 +349,10 @@ export default function EmailTemplatesSection() {
                                                     aria-label={`Edit ${template.name}`}
                                                     className="text-slate-500 transition hover:text-[#176B55]"
                                                 >
-                                                    <Pencil size={20} strokeWidth={1.8} />
+                                                    <Pencil
+                                                        size={20}
+                                                        strokeWidth={1.8}
+                                                    />
                                                 </button>
 
                                                 {/* Reset to default */}
@@ -345,14 +389,119 @@ export default function EmailTemplatesSection() {
 
                 {/* Footer note */}
                 <div className="mx-5 mb-5 mt-3 flex items-start gap-2 rounded-xl bg-slate-50 p-3 sm:mx-6">
-                    <Mail size={16} className="mt-0.5 shrink-0 text-slate-500" />
+                    <Mail
+                        size={16}
+                        className="mt-0.5 shrink-0 text-slate-500"
+                    />
 
                     <p className="text-xs leading-5 text-slate-500">
-                        All clinics use the default email templates unless they customize
-                        them. Resetting a template restores the global default.
+                        All clinics use the default email templates unless they
+                        customize them. Resetting a template restores the global
+                        default.
                     </p>
                 </div>
             </section>
+
+            {/* Reset confirmation modal - rendered directly inside document.body */}
+            {isMounted &&
+                templateToReset &&
+                createPortal(
+                    <div
+                        className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+                        onMouseDown={(event) => {
+                            if (
+                                event.target === event.currentTarget &&
+                                !isPending
+                            ) {
+                                setTemplateToReset(null);
+                            }
+                        }}
+                    >
+                        <div
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="reset-modal-title"
+                            className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl sm:p-7"
+                        >
+                            {/* Close button */}
+                            <button
+                                type="button"
+                                onClick={() => setTemplateToReset(null)}
+                                disabled={isPending}
+                                aria-label="Close modal"
+                                className="absolute right-5 top-5 rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 disabled:opacity-50"
+                            >
+                                <X size={20} />
+                            </button>
+
+                            {/* Warning icon */}
+                            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 text-orange-600">
+                                <AlertTriangle size={26} strokeWidth={2} />
+                            </div>
+
+                            {/* Heading */}
+                            <h2
+                                id="reset-modal-title"
+                                className="mt-6 text-xl font-semibold text-[#173F35]"
+                            >
+                                Reset email template?
+                            </h2>
+
+                            {/* Description */}
+                            <p className="mt-3 text-sm leading-7 text-slate-500">
+                                Are you sure you want to reset{" "}
+                                <span className="font-semibold text-slate-700">
+                                    {templateToReset.name}
+                                </span>{" "}
+                                to its default version?
+                            </p>
+
+                            {/* Warning message */}
+                            <div className="mt-5 rounded-xl border border-orange-100 bg-orange-50 p-4">
+                                <p className="text-sm leading-6 text-[#7C4A16]">
+                                    Your clinic&apos;s customized subject and
+                                    email content will be removed. The global
+                                    default template will be used instead.
+                                </p>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                                <button
+                                    type="button"
+                                    onClick={() => setTemplateToReset(null)}
+                                    disabled={isPending}
+                                    className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-200 px-6 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    Cancel
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={confirmReset}
+                                    disabled={isPending}
+                                    className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-orange-600 px-6 text-sm font-semibold text-white transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-70"
+                                >
+                                    {isPending ? (
+                                        <>
+                                            <Loader2
+                                                size={17}
+                                                className="animate-spin"
+                                            />
+                                            Resetting...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <RotateCcw size={17} />
+                                            Reset to Default
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>,
+                    document.body
+                )}
         </>
     );
 }
