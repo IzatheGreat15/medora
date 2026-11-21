@@ -407,11 +407,6 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {isLoadingSettings && (
-        <p className="text-sm text-slate-500">Loading clinic settings...</p>
-      )}
-
-
       {/* Clinic information */}
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
         <div className="flex items-start gap-3 border-b border-slate-100 p-5 sm:p-6">
@@ -429,7 +424,15 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <div className="space-y-8 p-5 sm:p-6">
+        {isLoadingSettings ? (
+          <div className="flex min-h-[350px] flex-col items-center justify-center gap-3">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#DDF3E7] border-t-[#176B55]" />
+            <p className="text-sm text-slate-500">
+              Loading clinic information...
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-8 p-5 sm:p-6">
 
           {/* 1. Clinic identity */}
           <div className="space-y-5">
@@ -736,7 +739,8 @@ export default function SettingsPage() {
             </div>
           </div>
 
-        </div>
+          </div>
+        )}
       </section>
 
       {/* Notification settings */}
