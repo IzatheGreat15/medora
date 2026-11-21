@@ -1,0 +1,5 @@
+
+ALTER TABLE public.clinics
+ADD COLUMN IF NOT EXISTS website_url TEXT NULL,
+ADD COLUMN IF NOT EXISTS contact_url TEXT NULL,
+ADD COLUMN IF NOT EXISTS email_header_image_url TEXT NULL;

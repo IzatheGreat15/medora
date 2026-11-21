@@ -400,22 +400,10 @@ export default function DoctorsPage() {
     const [pageError, setPageError] = useState("");
     const [toast, setToast] = useState("");
 
-    const loadData = useCallback(async () => {
-        setIsLoading(true);
-        setPageError("");
-
+    const loadDoctors = useCallback(async () => {
         try {
-            const [doctorData, branchData, limitResult, scheduleData] = await Promise.all([
-                getDoctors(),
-                getDoctorBranchOptions(),
-                getDoctorLimit(),
-                getDoctorSchedules(),
-            ]);
-
+            const doctorData = await getDoctors();
             setDoctors(doctorData);
-            setBranches(branchData);
-            setDoctorLimit(limitResult);
-            setDoctorSchedules(scheduleData);
         } catch (err) {
             setPageError(
                 err instanceof Error ? err.message : "Unable to load doctors.",
@@ -425,9 +413,29 @@ export default function DoctorsPage() {
         }
     }, []);
 
+    const loadAdditionalData = useCallback(async () => {
+        try {
+            const [branchData, limitResult, scheduleData] = await Promise.all([
+                getDoctorBranchOptions(),
+                getDoctorLimit(),
+                getDoctorSchedules(),
+            ]);
+
+            setBranches(branchData);
+            setDoctorLimit(limitResult);
+            setDoctorSchedules(scheduleData);
+        } catch (err) {
+            console.error("Unable to load additional doctor data:", err);
+        }
+    }, []);
+
     useEffect(() => {
-        void loadData();
-    }, [loadData]);
+        setIsLoading(true);
+        setPageError("");
+
+        void loadDoctors();
+        void loadAdditionalData();
+    }, [loadDoctors, loadAdditionalData]);
 
     const metrics = useMemo(() => {
         const active = doctors.filter(
@@ -509,7 +517,7 @@ export default function DoctorsPage() {
         await createDoctor(input);
 
         // Refresh the table after a successful database insert.
-        await loadData();
+        await loadDoctors();
         setToast("Doctor added successfully.");
     }
 
