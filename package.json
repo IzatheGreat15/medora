@@ -6,16 +6,20 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "postinstall": "node ./postinstall.js"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.118.0",
+    "@tinymce/tinymce-react": "^6.3.1",
+    "googleapis": "^190.0.0",
     "lucide-react": "^1.61.0",
     "next": "16.4.2",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "recharts": "^3.10.1"
+    "recharts": "^3.10.1",
+    "tinymce": "^8.10.2"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
@@ -24,6 +28,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.2",
+    "fs-extra": "^11.4.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   },
