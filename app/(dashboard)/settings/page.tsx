@@ -104,6 +104,20 @@ export default function SettingsPage() {
   const [planRequestMessage, setPlanRequestMessage] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [clinicEmail, setClinicEmail] = useState("");
+  const [clinicPhone, setClinicPhone] = useState("");
+  const [clinicWebsiteUrl, setClinicWebsiteUrl] = useState("");
+  const [clinicContactUrl, setClinicContactUrl] = useState("");
+
+  const [emailHeaderImage, setEmailHeaderImage] = useState("");
+  const [emailHeaderImageFile, setEmailHeaderImageFile] =
+    useState<File | null>(null);
+  const [removeEmailHeaderImage, setRemoveEmailHeaderImage] =
+    useState(false);
+  const [emailHeaderImageError, setEmailHeaderImageError] = useState("");
+
+  const emailHeaderFileInputRef = useRef<HTMLInputElement>(null);
+
   const [subscription, setSubscription] =
     useState<ClinicSubscription | null>(null);
 
@@ -121,24 +135,41 @@ export default function SettingsPage() {
         const data = await getClinicSettings();
         if (!active) return;
 
+        // Clinic information
         setClinicName(data.clinicName);
+        setClinicEmail(data.clinicEmail ?? "");
+        setClinicPhone(data.clinicPhone ?? "");
+        setClinicWebsiteUrl(data.clinicWebsiteUrl ?? "");
+        setClinicContactUrl(data.clinicContactUrl ?? "");
+
+        // Images
         setLogo(data.logo ?? "");
+        setEmailHeaderImage(data.emailHeaderImage ?? "");
+
+        // Notifications
         setNotifications((current) =>
           current.map((item) => ({
             ...item,
             email: data.notifications[item.id] ?? item.email,
           })),
         );
+
+        // Appointment reminders
         setReminderDays(data.reminderDays);
       } catch (error) {
         console.error("Failed to load clinic settings:", error);
+
         if (active) {
           setSettingsError(
-            error instanceof Error ? error.message : "Failed to load clinic settings.",
+            error instanceof Error
+              ? error.message
+              : "Failed to load clinic settings.",
           );
         }
       } finally {
-        if (active) setIsLoadingSettings(false);
+        if (active) {
+          setIsLoadingSettings(false);
+        }
       }
     }
 
@@ -176,6 +207,14 @@ export default function SettingsPage() {
     };
   }, [logo]);
 
+  useEffect(() => {
+    return () => {
+      if (emailHeaderImage.startsWith("blob:")) {
+        URL.revokeObjectURL(emailHeaderImage);
+      }
+    };
+  }, [emailHeaderImage]);
+
   const reminderEnabled =
     notifications.find((item) => item.id === "appointment_reminder")
       ?.email ?? false;
@@ -208,6 +247,49 @@ export default function SettingsPage() {
     setMessage("");
   }
 
+  function handleEmailHeaderImageChange(
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    setEmailHeaderImageError("");
+    setMessage("");
+
+    const allowedTypes = [
+      "image/png",
+      "image/jpeg",
+      "image/webp",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      setEmailHeaderImageError(
+        "Please upload a PNG, JPG, or WebP image.",
+      );
+      event.target.value = "";
+      return;
+    }
+
+    const maxFileSize = 2 * 1024 * 1024;
+
+    if (file.size > maxFileSize) {
+      setEmailHeaderImageError(
+        "Image size must not exceed 2 MB.",
+      );
+      event.target.value = "";
+      return;
+    }
+
+    // Create a temporary preview. The actual File is uploaded
+    // when the clinic settings are saved.
+    const previewUrl = URL.createObjectURL(file);
+
+    setEmailHeaderImage(previewUrl);
+    setEmailHeaderImageFile(file);
+    setRemoveEmailHeaderImage(false);
+  }
+
   function toggleEmail(eventId: string) {
     setNotifications((current) =>
       current.map((item) =>
@@ -231,21 +313,51 @@ export default function SettingsPage() {
 
       const result = await saveClinicSettings({
         clinicName,
+        clinicEmail,
+        clinicPhone,
+        clinicWebsiteUrl,
+        clinicContactUrl,
         notifications: preferences,
         reminderDays,
+
+        // Clinic logo
         logoFile,
         removeLogo,
+
+        // Email header image
+        emailHeaderImageFile,
+        removeEmailHeaderImage,
       });
 
+      // Update clinic information
       setLogo(result.logo ?? "");
+      setEmailHeaderImage(result.emailHeaderImage ?? "");
+
+      // Reset logo upload state
       setLogoFile(null);
       setRemoveLogo(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+
+      // Reset email header image upload state
+      setEmailHeaderImageFile(null);
+      setRemoveEmailHeaderImage(false);
+      setEmailHeaderImageError("");
+
+      if (emailHeaderFileInputRef.current) {
+        emailHeaderFileInputRef.current.value = "";
+      }
+
       setMessage("Your clinic settings have been saved.");
     } catch (error) {
       console.error("Failed to save clinic settings:", error);
+
       setSettingsError(
-        error instanceof Error ? error.message : "Failed to save clinic settings.",
+        error instanceof Error
+          ? error.message
+          : "Failed to save clinic settings.",
       );
     } finally {
       setIsSaving(false);
@@ -299,6 +411,7 @@ export default function SettingsPage() {
         <p className="text-sm text-slate-500">Loading clinic settings...</p>
       )}
 
+
       {/* Clinic information */}
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
         <div className="flex items-start gap-3 border-b border-slate-100 p-5 sm:p-6">
@@ -311,107 +424,318 @@ export default function SettingsPage() {
               Clinic information
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Customize how your clinic appears to patients.
+              Manage your clinic profile and how your clinic appears to patients.
             </p>
           </div>
         </div>
 
-        <div className="space-y-6 p-5 sm:p-6">
-          {/* Logo */}
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-            <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-[#F7F9F6]">
-              {logo ? (
-                <img
-                  src={logo}
-                  alt="Clinic logo preview"
-                  className="h-full w-full object-contain"
-                />
-              ) : (
-                <ImagePlus size={30} className="text-[#82A995]" />
-              )}
+        <div className="space-y-8 p-5 sm:p-6">
+
+          {/* 1. Clinic identity */}
+          <div className="space-y-5">
+            <div>
+              <h3 className="text-sm font-semibold text-[#173F35]">
+                Clinic identity
+              </h3>
+              <p className="mt-1 text-sm text-slate-500">
+                Your clinic's name and branding.
+              </p>
             </div>
 
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-[#173F35]">
-                Clinic logo
-              </p>
-              <p className="mt-1 text-sm text-slate-500">
-                This logo can be used on your booking page and patient
-                notifications.
-              </p>
-              <p className="mt-1 text-xs text-slate-400">
-                PNG, JPG, or WebP · Maximum 2 MB
-              </p>
-
-              <div className="mt-3 flex flex-wrap items-center gap-3">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  onChange={handleLogoChange}
-                  className="hidden"
-                />
-
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-medium text-[#173F35] transition hover:bg-slate-50"
-                >
-                  <Upload size={16} />
-                  Upload logo
-                </button>
-
-                {logo && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLogo("");
-                      setLogoFile(null);
-                      setRemoveLogo(true);
-                      if (fileInputRef.current) {
-                        fileInputRef.current.value = "";
-                      }
-                      setMessage("");
-                    }}
-                    className="text-sm font-medium text-slate-500 transition hover:text-red-600"
-                  >
-                    Remove logo
-                  </button>
+            {/* Clinic logo */}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+              <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-[#F7F9F6]">
+                {logo ? (
+                  <img
+                    src={logo}
+                    alt="Clinic logo preview"
+                    className="h-full w-full object-contain"
+                  />
+                ) : (
+                  <ImagePlus size={30} className="text-[#82A995]" />
                 )}
               </div>
 
-              {logoError && (
-                <p className="mt-2 text-sm text-red-600">{logoError}</p>
-              )}
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-[#173F35]">
+                  Clinic logo
+                </p>
+                <p className="mt-1 text-sm text-slate-500">
+                  Used on your booking page and patient notifications.
+                </p>
+                <p className="mt-1 text-xs text-slate-400">
+                  PNG, JPG, or WebP · Maximum 2 MB
+                </p>
+
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={handleLogoChange}
+                    className="hidden"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-medium text-[#173F35] transition hover:bg-slate-50"
+                  >
+                    <Upload size={16} />
+                    Upload logo
+                  </button>
+
+                  {logo && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLogo("");
+                        setLogoFile(null);
+                        setRemoveLogo(true);
+                        if (fileInputRef.current) {
+                          fileInputRef.current.value = "";
+                        }
+                        setMessage("");
+                      }}
+                      className="text-sm font-medium text-slate-500 transition hover:text-red-600"
+                    >
+                      Remove logo
+                    </button>
+                  )}
+                </div>
+
+                {logoError && (
+                  <p className="mt-2 text-sm text-red-600">{logoError}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Clinic name */}
+            <div className="max-w-xl space-y-2">
+              <label
+                htmlFor="clinicName"
+                className="block text-sm font-semibold text-[#173F35]"
+              >
+                Clinic name
+              </label>
+              <input
+                id="clinicName"
+                type="text"
+                value={clinicName}
+                onChange={(event) => {
+                  setClinicName(event.target.value);
+                  setMessage("");
+                }}
+                placeholder="Enter your clinic name"
+                maxLength={120}
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#82A995] focus:ring-2 focus:ring-[#DDF3E7]"
+              />
             </div>
           </div>
 
           <div className="border-t border-slate-100" />
 
-          {/* Clinic name */}
-          <div className="max-w-xl space-y-2">
-            <label
-              htmlFor="clinicName"
-              className="block text-sm font-semibold text-[#173F35]"
-            >
-              Clinic name
-            </label>
-            <input
-              id="clinicName"
-              type="text"
-              value={clinicName}
-              onChange={(event) => {
-                setClinicName(event.target.value);
-                setMessage("");
-              }}
-              placeholder="Enter your clinic name"
-              maxLength={120}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#82A995] focus:ring-2 focus:ring-[#DDF3E7]"
-            />
-            <p className="text-xs text-slate-400">
-              This name identifies your clinic throughout Medora.
-            </p>
+          {/* 2. Contact information */}
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-sm font-semibold text-[#173F35]">
+                Contact information
+              </h3>
+              <p className="mt-1 text-sm text-slate-500">
+                How patients can reach your clinic.
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label
+                  htmlFor="clinicEmail"
+                  className="block text-sm font-semibold text-[#173F35]"
+                >
+                  Contact email
+                </label>
+                <input
+                  id="clinicEmail"
+                  type="email"
+                  value={clinicEmail}
+                  onChange={(event) => {
+                    setClinicEmail(event.target.value);
+                    setMessage("");
+                  }}
+                  placeholder="clinic@example.com"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#82A995] focus:ring-2 focus:ring-[#DDF3E7]"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor="clinicPhone"
+                  className="block text-sm font-semibold text-[#173F35]"
+                >
+                  Phone number
+                </label>
+                <input
+                  id="clinicPhone"
+                  type="tel"
+                  value={clinicPhone}
+                  onChange={(event) => {
+                    setClinicPhone(event.target.value);
+                    setMessage("");
+                  }}
+                  placeholder="+63 9XX XXX XXXX"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#82A995] focus:ring-2 focus:ring-[#DDF3E7]"
+                />
+              </div>
+            </div>
           </div>
+
+          <div className="border-t border-slate-100" />
+
+          {/* 3. Online presence */}
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-sm font-semibold text-[#173F35]">
+                Online presence
+              </h3>
+              <p className="mt-1 text-sm text-slate-500">
+                Add links where patients can learn more or contact your clinic.
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label
+                  htmlFor="clinicWebsite"
+                  className="block text-sm font-semibold text-[#173F35]"
+                >
+                  Website URL
+                </label>
+                <input
+                  id="clinicWebsite"
+                  type="url"
+                  value={clinicWebsiteUrl}
+                  onChange={(event) => {
+                    setClinicWebsiteUrl(event.target.value);
+                    setMessage("");
+                  }}
+                  placeholder="https://yourclinic.com"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#82A995] focus:ring-2 focus:ring-[#DDF3E7]"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor="clinicContactUrl"
+                  className="block text-sm font-semibold text-[#173F35]"
+                >
+                  Contact page URL
+                </label>
+                <input
+                  id="clinicContactUrl"
+                  type="url"
+                  value={clinicContactUrl}
+                  onChange={(event) => {
+                    setClinicContactUrl(event.target.value);
+                    setMessage("");
+                  }}
+                  placeholder="https://yourclinic.com/contact"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#82A995] focus:ring-2 focus:ring-[#DDF3E7]"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-slate-100" />
+
+          {/* 4. Email branding */}
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-sm font-semibold text-[#173F35]">
+                Email branding
+              </h3>
+              <p className="mt-1 text-sm text-slate-500">
+                Customize the appearance of email notifications sent to your patients.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-semibold text-[#173F35]">
+                  Email header image
+                </p>
+                <p className="mt-1 text-sm text-slate-500">
+                  A wide branded image displayed at the top of your clinic's emails.
+                </p>
+              </div>
+
+              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-[#F7F9F6]">
+                {emailHeaderImage ? (
+                  <img
+                    src={emailHeaderImage}
+                    alt="Email header preview"
+                    className="h-36 w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-36 flex-col items-center justify-center gap-2">
+                    <ImagePlus size={30} className="text-[#82A995]" />
+                    <p className="text-sm text-slate-500">
+                      No email header image uploaded
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <input
+                ref={emailHeaderFileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={handleEmailHeaderImageChange}
+                className="hidden"
+              />
+
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => emailHeaderFileInputRef.current?.click()}
+                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-medium text-[#173F35] transition hover:bg-slate-50"
+                >
+                  <Upload size={16} />
+                  Upload header image
+                </button>
+
+                {emailHeaderImage && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmailHeaderImage("");
+                      setEmailHeaderImageFile(null);
+                      setRemoveEmailHeaderImage(true);
+
+                      if (emailHeaderFileInputRef.current) {
+                        emailHeaderFileInputRef.current.value = "";
+                      }
+
+                      setMessage("");
+                    }}
+                    className="text-sm font-medium text-slate-500 transition hover:text-red-600"
+                  >
+                    Remove image
+                  </button>
+                )}
+              </div>
+
+              <p className="text-xs text-slate-400">
+                PNG, JPG, or WebP · Maximum 2 MB · Recommended landscape image
+              </p>
+
+              {emailHeaderImageError && (
+                <p className="text-sm text-red-600">
+                  {emailHeaderImageError}
+                </p>
+              )}
+            </div>
+          </div>
+
         </div>
       </section>
 

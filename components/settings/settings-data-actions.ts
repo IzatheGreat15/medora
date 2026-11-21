@@ -18,10 +18,19 @@ export type ClinicNotificationPreference = Record<string, boolean>;
 
 export type ClinicSettingsInput = {
   clinicName: string;
-  notifications: ClinicNotificationPreference;
-  reminderDays: number;
+  clinicEmail: string;
+  clinicPhone: string;
+  clinicWebsiteUrl: string;
+  clinicContactUrl: string;
+
   logoFile: File | null;
   removeLogo: boolean;
+
+  emailHeaderImageFile: File | null;
+  removeEmailHeaderImage: boolean;
+
+  notifications: ClinicNotificationPreference;
+  reminderDays: number;
 };
 
 export type ClinicEmailTemplate = {
@@ -84,7 +93,15 @@ export async function getClinicSettings() {
 
   const { data: clinic, error: clinicError } = await admin
     .from("clinics")
-    .select("name, logo_url")
+    .select(`
+      name,
+      contact_email,
+      phone,
+      logo_url,
+      website_url,
+      contact_url,
+      email_header_image_url
+    `)
     .eq("id", clinicId)
     .single();
 
@@ -104,7 +121,12 @@ export async function getClinicSettings() {
 
   return {
     clinicName: clinic.name ?? "",
+    clinicEmail: clinic.contact_email ?? "",
+    clinicPhone: clinic.phone ?? "",
     logo: clinic.logo_url ?? "",
+    clinicWebsiteUrl: clinic.website_url ?? "",
+    clinicContactUrl: clinic.contact_url ?? "",
+    emailHeaderImage: clinic.email_header_image_url ?? "",
     notifications: (settings?.notification_preferences ??
       {}) as ClinicNotificationPreference,
     reminderDays: settings?.reminder_days ?? 1,
@@ -144,9 +166,10 @@ export async function saveClinicSettings(input: ClinicSettingsInput) {
     notifications[event] = Boolean(input.notifications?.[event]);
   }
 
+  // Get current clinic image URLs.
   const { data: currentClinic, error: currentClinicError } = await admin
     .from("clinics")
-    .select("logo_url")
+    .select("logo_url, email_header_image_url")
     .eq("id", clinicId)
     .single();
 
@@ -155,7 +178,10 @@ export async function saveClinicSettings(input: ClinicSettingsInput) {
   }
 
   let logoUrl: string | null = currentClinic.logo_url ?? null;
+  let emailHeaderImageUrl: string | null =
+    currentClinic.email_header_image_url ?? null;
 
+  // Upload clinic logo.
   if (input.logoFile) {
     const extension = ALLOWED_TYPES[input.logoFile.type];
 
@@ -191,11 +217,59 @@ export async function saveClinicSettings(input: ClinicSettingsInput) {
     logoUrl = null;
   }
 
+  // Upload email header image.
+  if (input.emailHeaderImageFile) {
+    const extension = ALLOWED_TYPES[input.emailHeaderImageFile.type];
+
+    if (!extension) {
+      throw new Error(
+        "Email header image must be a PNG, JPG, or WebP image."
+      );
+    }
+
+    if (input.emailHeaderImageFile.size > MAX_LOGO_SIZE) {
+      throw new Error("The email header image must be 2 MB or smaller.");
+    }
+
+    const filePath = `${clinicId}/email-headers/${crypto.randomUUID()}.${extension}`;
+    const bytes = new Uint8Array(
+      await input.emailHeaderImageFile.arrayBuffer()
+    );
+
+    const { error: uploadError } = await admin.storage
+      .from(BUCKET_NAME)
+      .upload(filePath, bytes, {
+        contentType: input.emailHeaderImageFile.type,
+        upsert: false,
+        cacheControl: "3600",
+      });
+
+    if (uploadError) {
+      throw new Error(
+        `Email header image upload failed: ${uploadError.message}`
+      );
+    }
+
+    const { data: publicUrl } = admin.storage
+      .from(BUCKET_NAME)
+      .getPublicUrl(filePath);
+
+    emailHeaderImageUrl = publicUrl.publicUrl;
+  } else if (input.removeEmailHeaderImage) {
+    emailHeaderImageUrl = null;
+  }
+
+  // Update clinic information.
   const { error: clinicUpdateError } = await admin
     .from("clinics")
     .update({
       name: clinicName,
+      contact_email: input.clinicEmail.trim() || null,
+      phone: input.clinicPhone.trim() || null,
+      website_url: input.clinicWebsiteUrl.trim() || null,
+      contact_url: input.clinicContactUrl.trim() || null,
       logo_url: logoUrl,
+      email_header_image_url: emailHeaderImageUrl,
     })
     .eq("id", clinicId);
 
@@ -203,6 +277,7 @@ export async function saveClinicSettings(input: ClinicSettingsInput) {
     throw new Error(clinicUpdateError.message);
   }
 
+  // Save notification preferences.
   const { error: settingsUpsertError } = await admin
     .from("clinic_settings")
     .upsert(
@@ -218,9 +293,11 @@ export async function saveClinicSettings(input: ClinicSettingsInput) {
     throw new Error(settingsUpsertError.message);
   }
 
-  return { logo: logoUrl };
+  return {
+    logo: logoUrl,
+    emailHeaderImage: emailHeaderImageUrl,
+  };
 }
-
 // --------------------------------------------------
 // EMAIL TEMPLATE LIST
 // --------------------------------------------------

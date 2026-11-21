@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useRef } from "react";
@@ -57,6 +56,7 @@ export default function EmailTemplateEditForm({
             menubar: false,
             branding: false,
             promotion: false,
+            toolbar_mode: "wrap",
             plugins: [
               "advlist",
               "autolink",
