@@ -5,6 +5,8 @@ import "server-only";
 
 import { getCurrentStaff } from "@/lib/auth/get-current-staff";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
+import { getEmailTemplate } from "@/lib/email/render-email-template";
+import { sendEmail } from "@/lib/email";
 
 export type DashboardBooking = {
   id: string;
@@ -203,13 +205,14 @@ export async function updateBookingStatus(
 
   const { clinicId, supabase } = await getClinicContext();
 
+  // 1. Update booking status.
   const { data, error } = await supabase
     .from("bookings")
     .update({ status })
     .eq("id", bookingId)
     .eq("clinic_id", clinicId)
     .eq("status", "Pending")
-    .select("id")
+    .select("id, is_updated")
     .maybeSingle();
 
   if (error) {
@@ -223,7 +226,52 @@ export async function updateBookingStatus(
     );
   }
 
-  return { success: true };
+  // 2. Get the appropriate email template.
+  const templateCode =
+    status === "Rejected"
+      ? "booking_declined"
+      : data.is_updated
+        ? "booking_updated"
+        : "booking_approved";
+
+  const emailTemplate = await getEmailTemplate(
+    templateCode,
+    clinicId,
+  );
+
+  // 3. Only fetch booking details if an email template exists.
+  if (emailTemplate) {
+    const { data: booking, error: bookingError } = await supabase
+      .from("bookings")
+      .select(`
+        id,
+        patient_full_name,
+        patient_email
+      `)
+      .eq("id", bookingId)
+      .eq("clinic_id", clinicId)
+      .single();
+
+    if (bookingError || !booking) {
+      console.error("Failed to fetch booking details:", bookingError);
+      throw new Error("Unable to retrieve booking details for email.");
+    }
+
+    // 4. Send email.
+    await sendEmail({
+      templateId: emailTemplate.id,
+      clinicId,
+      to: booking.patient_email,
+      recipientName: booking.patient_full_name,
+      resolverIds: {
+        id_booking: booking.id,
+      },
+    });
+  }
+
+  return {
+    success: true,
+  };
 }
 
 const UUID_REGEX =
@@ -798,6 +846,7 @@ export async function updatePendingBooking(
       service_name: service.name,
       service_price: price,
       service_duration: duration,
+      is_updated: true,
     })
     .eq("id", input.bookingId)
     .eq("clinic_id", clinicId)

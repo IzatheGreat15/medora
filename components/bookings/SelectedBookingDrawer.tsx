@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useState } from "react";
 import type { DashboardBooking } from "@/app/(dashboard)/bookings/actions";
 import {
   CalendarDays,
@@ -104,8 +105,22 @@ export default function SelectedBookingDrawer({
   onEdit,
   onUpdateStatus,
 }: SelectedBookingDrawerProps) {
+  const [showDeclineModal, setShowDeclineModal] = useState(false);
+  const [showApproveModal, setShowApproveModal] = useState(false);
+
+  const handleDecline = () => {
+    onUpdateStatus(booking, "Declined");
+    setShowDeclineModal(false);
+  };
+
+  const handleApprove = () => {
+    onUpdateStatus(booking, "Confirmed");
+    setShowApproveModal(false);
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
+      {/* Drawer backdrop */}
       <button
         type="button"
         aria-label="Close booking details"
@@ -113,12 +128,14 @@ export default function SelectedBookingDrawer({
         className="absolute inset-0 bg-slate-950/35 backdrop-blur-[2px]"
       />
 
+      {/* Booking drawer */}
       <aside
         role="dialog"
         aria-modal="true"
         aria-labelledby="booking-detail-title"
         className="relative flex h-full w-full max-w-xl flex-col bg-white shadow-2xl"
       >
+        {/* Header */}
         <div className="flex items-start justify-between border-b border-slate-100 px-6 py-5">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
@@ -145,6 +162,7 @@ export default function SelectedBookingDrawer({
           </button>
         </div>
 
+        {/* Booking details */}
         <div className="flex-1 space-y-6 overflow-y-auto px-6 py-6">
           <div className="flex items-center justify-between gap-3">
             <span className="text-sm font-medium text-slate-500">
@@ -153,6 +171,7 @@ export default function SelectedBookingDrawer({
             <StatusBadge status={booking.status} />
           </div>
 
+          {/* Patient information */}
           <section className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
             <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
               Patient information
@@ -175,6 +194,7 @@ export default function SelectedBookingDrawer({
             </div>
           </section>
 
+          {/* Appointment information */}
           <section>
             <h4 className="font-semibold text-[#173F35]">
               Appointment information
@@ -213,6 +233,7 @@ export default function SelectedBookingDrawer({
             </div>
           </section>
 
+          {/* Patient notes */}
           <section>
             <div className="flex items-center gap-2">
               <StickyNote size={17} className="text-[#176B55]" />
@@ -227,38 +248,42 @@ export default function SelectedBookingDrawer({
           </section>
         </div>
 
+        {/* Footer actions */}
         <div className="border-t border-slate-100 bg-white px-6 py-5">
           {booking.status === "Pending" ? (
             <div className="flex flex-col gap-3">
               <div className="flex flex-col-reverse gap-3 sm:flex-row">
+                {/* Decline */}
                 <button
                   type="button"
                   disabled={isUpdatingStatus}
-                  onClick={() => onUpdateStatus(booking, "Declined")}
+                  onClick={() => setShowDeclineModal(true)}
                   className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-rose-200 px-4 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <X size={17} />
                   Decline
                 </button>
 
-                <button
-                type="button"
-                disabled={isUpdatingStatus}
-                onClick={() => onEdit(booking)}
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-[#176B55]/30 px-4 py-3 text-sm font-semibold text-[#176B55] transition hover:bg-[#DDF3E7]/50 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <Pencil size={17} />
-                Edit
-              </button>
-
+                {/* Edit */}
                 <button
                   type="button"
                   disabled={isUpdatingStatus}
-                  onClick={() => onUpdateStatus(booking, "Confirmed")}
+                  onClick={() => onEdit(booking)}
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-[#176B55]/30 px-4 py-3 text-sm font-semibold text-[#176B55] transition hover:bg-[#DDF3E7]/50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Pencil size={17} />
+                  Edit
+                </button>
+
+                {/* Approve */}
+                <button
+                  type="button"
+                  disabled={isUpdatingStatus}
+                  onClick={() => setShowApproveModal(true)}
                   className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#176B55] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#173F35] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Check size={17} />
-                  {isUpdatingStatus ? "Saving..." : "Approve "}
+                  Approve
                 </button>
               </div>
             </div>
@@ -277,6 +302,120 @@ export default function SelectedBookingDrawer({
           </p>
         </div>
       </aside>
+
+      {/* Decline confirmation modal */}
+      {showDeclineModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/40 px-4 backdrop-blur-[2px]">
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="decline-modal-title"
+            aria-describedby="decline-modal-description"
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-600">
+              <X size={24} />
+            </div>
+
+            <h3
+              id="decline-modal-title"
+              className="mt-4 text-lg font-bold text-[#173F35]"
+            >
+              Decline this booking?
+            </h3>
+
+            <p
+              id="decline-modal-description"
+              className="mt-2 text-sm leading-6 text-slate-500"
+            >
+              Are you sure you want to decline this appointment request from{" "}
+              <span className="font-semibold text-slate-700">
+                {booking.patient}
+              </span>
+              ? The booking status will be updated and the patient will be
+              notified.
+            </p>
+
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                disabled={isUpdatingStatus}
+                onClick={() => setShowDeclineModal(false)}
+                className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                disabled={isUpdatingStatus}
+                onClick={handleDecline}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <X size={16} />
+                {isUpdatingStatus ? "Declining..." : "Yes, decline booking"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Approve confirmation modal */}
+      {showApproveModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/40 px-4 backdrop-blur-[2px]">
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="approve-modal-title"
+            aria-describedby="approve-modal-description"
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+              <Check size={24} />
+            </div>
+
+            <h3
+              id="approve-modal-title"
+              className="mt-4 text-lg font-bold text-[#173F35]"
+            >
+              Approve this booking?
+            </h3>
+
+            <p
+              id="approve-modal-description"
+              className="mt-2 text-sm leading-6 text-slate-500"
+            >
+              Are you sure you want to approve the appointment request from{" "}
+              <span className="font-semibold text-slate-700">
+                {booking.patient}
+              </span>
+              ? The booking status will be updated and the patient will be
+              notified. Once approved, you can no longer edit the booking details.
+            </p>
+
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                disabled={isUpdatingStatus}
+                onClick={() => setShowApproveModal(false)}
+                className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                disabled={isUpdatingStatus}
+                onClick={handleApprove}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#176B55] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#173F35] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Check size={16} />
+                {isUpdatingStatus ? "Approving..." : "Yes, approve booking"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

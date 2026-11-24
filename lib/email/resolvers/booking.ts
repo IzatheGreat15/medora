@@ -116,5 +116,6 @@ export async function resolveBookingVariables(
     }),
 
     booking_id: booking.id,
+    decline_url: `${process.env.NEXT_PUBLIC_APP_URL}/bookings/${booking.id}/decline-changes`,
   };
 }

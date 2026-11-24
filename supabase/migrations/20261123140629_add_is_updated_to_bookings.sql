@@ -1,0 +1,2 @@
+ALTER TABLE public.bookings
+ADD COLUMN is_updated BOOLEAN NOT NULL DEFAULT FALSE;

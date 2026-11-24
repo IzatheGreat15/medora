@@ -29,6 +29,7 @@ const tagGroups: TagGroup[] = [
       { label: "Clinic Logo URL", value: "{{clinic_logo_url}}" },
       { label: "Clinic Header Image", value: "{{clinic_header_image_url}}" },
       { label: "Clinic Contact URL", value: "{{clinic_contact_url}}" },
+      { label: "Clinic Booking URL", value: "{{booking_url}}" },
     ],
   },
   {
@@ -50,9 +51,7 @@ const tagGroups: TagGroup[] = [
   {
     name: "Confirmation",
     tags: [
-      { label: "Accept URL", value: "{{accept_url}}" },
       { label: "Decline URL", value: "{{decline_url}}" },
-      { label: "Confirmation Deadline", value: "{{confirmation_deadline}}" },
     ],
   },
 ];

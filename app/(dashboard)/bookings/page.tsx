@@ -847,7 +847,7 @@ export default function BookingsPage() {
                         setMessageType(type);
                     }}
                 />
-)}
+            )}
         </div>
     );
 }
