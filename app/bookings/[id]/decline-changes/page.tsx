@@ -1,6 +1,8 @@
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
 import DeclineChangesClient from "./DeclineChangesClient";
 
+export const instant = false;
+
 interface PageProps {
   params: Promise<{
     id: string;
