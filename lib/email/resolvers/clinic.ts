@@ -37,5 +37,6 @@ export async function resolveClinicVariables(
     clinic_website_url: clinic.website_url,
     clinic_contact_url: clinic.contact_url,
     clinic_header_image_url: clinic.email_header_image_url,
+    booking_url: `${process.env.NEXT_PUBLIC_APP_URL}/book-an-appointment?clinic=${clinic.id}`,
   };
 }

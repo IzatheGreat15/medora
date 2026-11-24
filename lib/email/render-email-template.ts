@@ -6,6 +6,7 @@ import type {
   EmailVariables,
   RenderedEmail,
 } from "./types";
+import { createSupabaseAdmin } from "../supabase/admin";
 
 function escapeHtml(value: string): string {
   return value
@@ -129,4 +130,47 @@ export function renderEmailTemplate(
     bodyHtml,
     bodyText,
   };
+}
+
+export async function getEmailTemplate(
+  code: string,
+  clinicId: string | null,
+): Promise<EmailTemplate | null> {
+  const supabase = createSupabaseAdmin();
+
+  // If a clinic ID is provided, look for its custom template first.
+  if (clinicId) {
+    const { data: clinicTemplate, error: clinicError } = await supabase
+      .from("email_templates")
+      .select("*")
+      .eq("code", code)
+      .eq("clinic_id", clinicId)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (clinicError) {
+      console.error("Error fetching clinic email template:", clinicError);
+      return null;
+    }
+
+    if (clinicTemplate) {
+      return clinicTemplate as EmailTemplate;
+    }
+  }
+
+  // Fall back to the global template.
+  const { data: globalTemplate, error: globalError } = await supabase
+    .from("email_templates")
+    .select("*")
+    .eq("code", code)
+    .is("clinic_id", null)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (globalError) {
+    console.error("Error fetching global email template:", globalError);
+    return null;
+  }
+
+  return globalTemplate as EmailTemplate | null;
 }

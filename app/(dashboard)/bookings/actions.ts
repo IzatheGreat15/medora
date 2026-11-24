@@ -5,6 +5,8 @@ import "server-only";
 
 import { getCurrentStaff } from "@/lib/auth/get-current-staff";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
+import { getEmailTemplate } from "@/lib/email/render-email-template";
+import { sendEmail } from "@/lib/email";
 
 export type DashboardBooking = {
   id: string;
@@ -19,6 +21,44 @@ export type DashboardBooking = {
   duration: number;
   status: "Pending" | "Confirmed" | "Declined" | "Completed";
   notes: string;
+};
+
+export type BookingEditOptions = {
+  branches: {
+    id: string;
+    name: string;
+  }[];
+  services: {
+    id: string;
+    name: string;
+    durationMinutes: number;
+    price: number;
+  }[];
+  doctors: {
+    id: string;
+    name: string;
+    branchServices: {
+      branchId: string;
+      serviceId: string;
+      price: number | null;
+      durationMinutes: number | null;
+    }[];
+  }[];
+};
+
+export type UpdatePendingBookingInput = {
+  bookingId: string;
+  branchId: string;
+  serviceId: string;
+  doctorId: string;
+  date: string;
+  time: string;
+  patient: {
+    fullName: string;
+    email: string;
+    phone: string;
+    notes: string;
+  };
 };
 
 export async function getClinicContext() {
@@ -165,13 +205,14 @@ export async function updateBookingStatus(
 
   const { clinicId, supabase } = await getClinicContext();
 
+  // 1. Update booking status.
   const { data, error } = await supabase
     .from("bookings")
     .update({ status })
     .eq("id", bookingId)
     .eq("clinic_id", clinicId)
     .eq("status", "Pending")
-    .select("id")
+    .select("id, is_updated")
     .maybeSingle();
 
   if (error) {
@@ -183,6 +224,643 @@ export async function updateBookingStatus(
     throw new Error(
       "This booking is no longer pending or is unavailable.",
     );
+  }
+
+  // 2. Get the appropriate email template.
+  const templateCode =
+    status === "Rejected"
+      ? "booking_declined"
+      : data.is_updated
+        ? "booking_updated"
+        : "booking_approved";
+
+  const emailTemplate = await getEmailTemplate(
+    templateCode,
+    clinicId,
+  );
+
+  // 3. Only fetch booking details if an email template exists.
+  if (emailTemplate) {
+    const { data: booking, error: bookingError } = await supabase
+      .from("bookings")
+      .select(`
+        id,
+        patient_full_name,
+        patient_email
+      `)
+      .eq("id", bookingId)
+      .eq("clinic_id", clinicId)
+      .single();
+
+    if (bookingError || !booking) {
+      console.error("Failed to fetch booking details:", bookingError);
+      throw new Error("Unable to retrieve booking details for email.");
+    }
+
+    // 4. Send email.
+    await sendEmail({
+      templateId: emailTemplate.id,
+      clinicId,
+      to: booking.patient_email,
+      recipientName: booking.patient_full_name,
+      resolverIds: {
+        id_booking: booking.id,
+      },
+    });
+  }
+
+  return {
+    success: true,
+  };
+}
+
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isUuid(value: unknown): value is string {
+  return typeof value === "string" && UUID_REGEX.test(value);
+}
+
+function fail(message: string): never {
+  throw new Error(message);
+}
+
+function getManilaDate() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+
+  const get = (type: string) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+
+function getManilaMinutes() {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Manila",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date());
+
+  const hour = Number(
+    parts.find((part) => part.type === "hour")?.value ?? 0,
+  );
+
+  const minute = Number(
+    parts.find((part) => part.type === "minute")?.value ?? 0,
+  );
+
+  return hour * 60 + minute;
+}
+
+function parseBookingDate(date: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    fail("Please select a valid appointment date.");
+  }
+
+  const [year, month, day] = date.split("-").map(Number);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    fail("Please select a valid appointment date.");
+  }
+
+  if (date < getManilaDate()) {
+    fail("Please select today or a future date.");
+  }
+
+  return parsed.getUTCDay();
+}
+
+function timeToMinutes(value: string) {
+  const match = value.slice(0, 5).match(/^(\d{2}):(\d{2})$/);
+
+  if (!match) {
+    fail("Invalid appointment time.");
+  }
+
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
+function toSqlTime(value: string) {
+  const match = value.match(/^(\d{1,2}):(\d{2})\s?(AM|PM)$/i);
+
+  if (!match) {
+    fail("Please select a valid appointment time.");
+  }
+
+  let hour = Number(match[1]);
+  const minute = Number(match[2]);
+  const meridiem = match[3].toUpperCase();
+
+  if (hour < 1 || hour > 12 || minute < 0 || minute > 59) {
+    fail("Please select a valid appointment time.");
+  }
+
+  hour = (hour % 12) + (meridiem === "PM" ? 12 : 0);
+
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`;
+}
+
+function minutesToLabel(total: number) {
+  const hour24 = Math.floor(total / 60);
+  const minute = total % 60;
+  const meridiem = hour24 >= 12 ? "PM" : "AM";
+  const hour12 = hour24 % 12 || 12;
+
+  return `${hour12}:${String(minute).padStart(2, "0")} ${meridiem}`;
+}
+
+async function getEditBookingContext(bookingId: string) {
+  if (!isUuid(bookingId)) {
+    fail("Invalid booking.");
+  }
+
+  const context = await getClinicContext();
+
+  const { data: booking, error } = await context.supabase
+    .from("bookings")
+    .select("id, status")
+    .eq("id", bookingId)
+    .eq("clinic_id", context.clinicId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Failed to load booking:", error.message);
+    fail("Unable to load this booking.");
+  }
+
+  if (!booking) {
+    fail("Booking not found.");
+  }
+
+  if (booking.status !== "Pending") {
+    fail("Only pending bookings can be edited.");
+  }
+
+  return context;
+}
+
+/**
+ * Returns only active branches, services, and doctors
+ * belonging to the authenticated clinic.
+ */
+export async function getBookingEditOptions(): Promise<BookingEditOptions> {
+  const { clinicId, supabase } = await getClinicContext();
+
+  const [branchResult, serviceResult, doctorResult, assignmentResult] =
+    await Promise.all([
+      supabase
+        .from("branches")
+        .select("id, name")
+        .eq("clinic_id", clinicId)
+        .eq("status", "Active")
+        .order("name"),
+
+      supabase
+        .from("services")
+        .select("id, name, duration, rate")
+        .eq("clinic_id", clinicId)
+        .eq("status", "Active")
+        .order("name"),
+
+      supabase
+        .from("doctors")
+        .select("id, name")
+        .eq("clinic_id", clinicId)
+        .eq("status", "Active")
+        .order("name"),
+
+      supabase
+        .from("doctor_branches")
+        .select("id, doctor_id, branch_id")
+        .eq("clinic_id", clinicId),
+    ]);
+
+  if (
+    branchResult.error ||
+    serviceResult.error ||
+    doctorResult.error ||
+    assignmentResult.error
+  ) {
+    console.error(
+      "Failed to load edit options:",
+      branchResult.error?.message,
+      serviceResult.error?.message,
+      doctorResult.error?.message,
+      assignmentResult.error?.message,
+    );
+
+    fail("Unable to load booking options.");
+  }
+
+  const assignments = assignmentResult.data ?? [];
+  const assignmentIds = assignments.map((item) => item.id);
+
+  let serviceAssignments: {
+    doctor_branch_id: string;
+    service_id: string;
+    price_override: number | null;
+    duration_override: number | null;
+  }[] = [];
+
+  if (assignmentIds.length) {
+    const { data, error } = await supabase
+      .from("doctor_branch_services")
+      .select(
+        "doctor_branch_id, service_id, price_override, duration_override",
+      )
+      .in("doctor_branch_id", assignmentIds);
+
+    if (error) {
+      console.error("Failed to load doctor services:", error.message);
+      fail("Unable to load doctor service assignments.");
+    }
+
+    serviceAssignments = data ?? [];
+  }
+
+  return {
+    branches: branchResult.data ?? [],
+
+    services: (serviceResult.data ?? []).map((service) => ({
+      id: service.id,
+      name: service.name,
+      durationMinutes: Number(service.duration),
+      price: Number(service.rate),
+    })),
+
+    doctors: (doctorResult.data ?? []).map((doctor) => {
+      const doctorAssignments = assignments.filter(
+        (item) => item.doctor_id === doctor.id,
+      );
+
+      return {
+        id: doctor.id,
+        name: doctor.name,
+
+        branchServices: serviceAssignments.flatMap((item) => {
+          const assignment = doctorAssignments.find(
+            (candidate) => candidate.id === item.doctor_branch_id,
+          );
+
+          if (!assignment) return [];
+
+          return [{
+            branchId: assignment.branch_id,
+            serviceId: item.service_id,
+            price:
+              item.price_override == null
+                ? null
+                : Number(item.price_override),
+            durationMinutes:
+              item.duration_override == null
+                ? null
+                : Number(item.duration_override),
+          }];
+        }),
+      };
+    }),
+  };
+}
+
+/**
+ * Retrieves available appointment times.
+ * The current booking is excluded from the conflict check.
+ */
+export async function getPendingBookingEditSlots(
+  bookingId: string,
+  input: {
+    branchId: string;
+    serviceId: string;
+    doctorId: string;
+    date: string;
+  },
+): Promise<string[]> {
+  const { clinicId, supabase } = await getEditBookingContext(bookingId);
+
+  if (
+    !isUuid(input.branchId) ||
+    !isUuid(input.serviceId) ||
+    !isUuid(input.doctorId)
+  ) {
+    fail("Please select a valid branch, service, and doctor.");
+  }
+
+  const weekday = parseBookingDate(input.date);
+
+  const options = await getBookingEditOptions();
+
+  const branch = options.branches.find(
+    (item) => item.id === input.branchId,
+  );
+
+  const service = options.services.find(
+    (item) => item.id === input.serviceId,
+  );
+
+  const doctor = options.doctors.find(
+    (item) => item.id === input.doctorId,
+  );
+
+  if (!branch || !service || !doctor) {
+    fail("One of your selections is no longer available.");
+  }
+
+  const doctorService = doctor.branchServices.find(
+    (item) =>
+      item.branchId === input.branchId &&
+      item.serviceId === input.serviceId,
+  );
+
+  if (!doctorService) {
+    fail("This doctor does not offer the selected service at this branch.");
+  }
+
+  const assignment = await supabase
+    .from("doctor_branches")
+    .select("id")
+    .eq("clinic_id", clinicId)
+    .eq("doctor_id", input.doctorId)
+    .eq("branch_id", input.branchId)
+    .maybeSingle();
+
+  if (assignment.error || !assignment.data) {
+    fail("The selected doctor is not assigned to this branch.");
+  }
+
+  const duration =
+    doctorService.durationMinutes ?? service.durationMinutes;
+
+  const { data: workingHours, error: hoursError } = await supabase
+    .from("doctor_working_hours")
+    .select("start_time, end_time")
+    .eq("doctor_branch_id", assignment.data.id)
+    .eq("day_of_week", weekday);
+
+  if (hoursError) {
+    console.error("Failed to load schedule:", hoursError.message);
+    fail("Unable to load the doctor's schedule.");
+  }
+
+  if (!workingHours?.length) return [];
+
+  const { data: bookings, error: bookingsError } = await supabase
+    .from("bookings")
+    .select("id, appointment_time, service_duration")
+    .eq("clinic_id", clinicId)
+    .eq("doctor_id", input.doctorId)
+    .eq("appointment_date", input.date)
+    .not("status", "in", '("Rejected","Cancelled")')
+    .neq("id", bookingId);
+
+  if (bookingsError) {
+    console.error("Failed to load existing bookings:", bookingsError.message);
+    fail("Unable to check appointment availability.");
+  }
+
+  const busy = (bookings ?? []).map((booking) => {
+    const start = timeToMinutes(booking.appointment_time);
+
+    return {
+      start,
+      end: start + Number(booking.service_duration || 0),
+    };
+  });
+
+  const today = input.date === getManilaDate();
+  const now = today ? getManilaMinutes() : -1;
+  const slots = new Set<string>();
+
+  for (const range of workingHours) {
+    const start = timeToMinutes(range.start_time);
+    const end = timeToMinutes(range.end_time);
+
+    for (
+      let slotStart = start;
+      slotStart + duration <= end;
+      slotStart += 30
+    ) {
+      if (today && slotStart <= now) continue;
+
+      const slotEnd = slotStart + duration;
+
+      const overlaps = busy.some(
+        (booking) =>
+          slotStart < booking.end && booking.start < slotEnd,
+      );
+
+      if (!overlaps) {
+        slots.add(minutesToLabel(slotStart));
+      }
+    }
+  }
+
+  return [...slots].sort((a, b) => {
+    const toMinutes = (label: string) => {
+      const match = label.match(/^(\d{1,2}):(\d{2}) (AM|PM)$/)!;
+      let hour = Number(match[1]);
+      const minute = Number(match[2]);
+
+      hour = (hour % 12) + (match[3] === "PM" ? 12 : 0);
+
+      return hour * 60 + minute;
+    };
+
+    return toMinutes(a) - toMinutes(b);
+  });
+}
+
+/**
+ * Updates a booking only if it is still Pending.
+ * Service price and duration are taken from the selected doctor's
+ * branch-specific service assignment.
+ */
+export async function updatePendingBooking(
+  input: UpdatePendingBookingInput,
+) {
+  if (
+    !input ||
+    !isUuid(input.bookingId) ||
+    !isUuid(input.branchId) ||
+    !isUuid(input.serviceId) ||
+    !isUuid(input.doctorId)
+  ) {
+    fail("Please select valid booking details.");
+  }
+
+  const fullName = input.patient?.fullName?.trim() ?? "";
+  const email = input.patient?.email?.trim().toLowerCase() ?? "";
+  const phone = input.patient?.phone?.trim() ?? "";
+  const notes = input.patient?.notes?.trim() ?? "";
+
+  if (!fullName || fullName.length > 150) {
+    fail("Please enter a valid patient name.");
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    fail("Please enter a valid email address.");
+  }
+
+  if (!phone || phone.length > 40) {
+    fail("Please enter a valid phone number.");
+  }
+
+  if (notes.length > 1000) {
+    fail("Notes cannot exceed 1,000 characters.");
+  }
+
+  const appointmentTime = toSqlTime(input.time);
+  const weekday = parseBookingDate(input.date);
+
+  const { clinicId, supabase } = await getEditBookingContext(
+    input.bookingId,
+  );
+
+  const options = await getBookingEditOptions();
+
+  const branch = options.branches.find(
+    (item) => item.id === input.branchId,
+  );
+
+  const service = options.services.find(
+    (item) => item.id === input.serviceId,
+  );
+
+  const doctor = options.doctors.find(
+    (item) => item.id === input.doctorId,
+  );
+
+  if (!branch || !service || !doctor) {
+    fail("One of your selections is no longer available.");
+  }
+
+  const doctorService = doctor.branchServices.find(
+    (item) =>
+      item.branchId === input.branchId &&
+      item.serviceId === input.serviceId,
+  );
+
+  if (!doctorService) {
+    fail("This doctor does not offer the selected service at this branch.");
+  }
+
+  const { data: assignment, error: assignmentError } = await supabase
+    .from("doctor_branches")
+    .select("id")
+    .eq("clinic_id", clinicId)
+    .eq("doctor_id", input.doctorId)
+    .eq("branch_id", input.branchId)
+    .maybeSingle();
+
+  if (assignmentError || !assignment) {
+    fail("The selected doctor is not assigned to this branch.");
+  }
+
+  const duration =
+    doctorService.durationMinutes ?? service.durationMinutes;
+
+  const price = doctorService.price ?? service.price;
+
+  const { data: workingHours, error: hoursError } = await supabase
+    .from("doctor_working_hours")
+    .select("start_time, end_time")
+    .eq("doctor_branch_id", assignment.id)
+    .eq("day_of_week", weekday);
+
+  if (hoursError) {
+    console.error("Failed to load schedule:", hoursError.message);
+    fail("Unable to validate the doctor's schedule.");
+  }
+
+  const start = timeToMinutes(appointmentTime);
+
+  const fitsSchedule = (workingHours ?? []).some((range) => {
+    const rangeStart = timeToMinutes(range.start_time);
+    const rangeEnd = timeToMinutes(range.end_time);
+
+    return start >= rangeStart && start + duration <= rangeEnd;
+  });
+
+  if (!fitsSchedule) {
+    fail("The selected time is outside the doctor's working hours.");
+  }
+
+  if (
+    input.date === getManilaDate() &&
+    start <= getManilaMinutes()
+  ) {
+    fail("Please select a future appointment time.");
+  }
+
+  const { data: conflicts, error: conflictError } = await supabase
+    .from("bookings")
+    .select("id, appointment_time, service_duration")
+    .eq("clinic_id", clinicId)
+    .eq("doctor_id", input.doctorId)
+    .eq("appointment_date", input.date)
+    .not("status", "in", '("Rejected","Cancelled")')
+    .neq("id", input.bookingId);
+
+  if (conflictError) {
+    console.error("Failed to check appointment conflicts:", conflictError.message);
+    fail("Unable to check appointment availability.");
+  }
+
+  const overlaps = (conflicts ?? []).some((booking) => {
+    const existingStart = timeToMinutes(booking.appointment_time);
+    const existingEnd =
+      existingStart + Number(booking.service_duration || 0);
+
+    return (
+      start < existingEnd &&
+      existingStart < start + duration
+    );
+  });
+
+  if (overlaps) {
+    fail("This appointment time is no longer available.");
+  }
+
+  const { data, error } = await supabase
+    .from("bookings")
+    .update({
+      branch_id: input.branchId,
+      doctor_id: input.doctorId,
+      service_id: input.serviceId,
+      patient_full_name: fullName,
+      patient_email: email,
+      patient_phone: phone,
+      patient_notes: notes,
+      appointment_date: input.date,
+      appointment_time: appointmentTime,
+      service_name: service.name,
+      service_price: price,
+      service_duration: duration,
+      is_updated: true,
+    })
+    .eq("id", input.bookingId)
+    .eq("clinic_id", clinicId)
+    .eq("status", "Pending")
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    console.error("Failed to update booking:", error.message);
+    fail("Unable to save booking changes.");
+  }
+
+  if (!data) {
+    fail("This booking is no longer pending or is unavailable.");
   }
 
   return { success: true };
