@@ -4,6 +4,8 @@
 import { createClient } from "@supabase/supabase-js";
 import { getCurrentStaff } from "@/lib/auth/get-current-staff";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
+import { sendEmail } from "@/lib/email";
+import { getEmailTemplate } from "@/lib/email/render-email-template";
 
 type StaffStatus = "Active" | "Inactive";
 
@@ -18,20 +20,20 @@ export type ClinicStaffMember = {
 };
 
 export type ClinicSubscription = {
-  clinic_name: string;
-  clinic_status: string;
-  trial_ends_at: string | null;
-  plan: {
-    id: string;
-    name: string;
-    description: string | null;
-    price: number;
-    billing_interval: string;
-    features: unknown;
-    max_doctors: number;
-    max_branches: number;
-    is_active: boolean;
-  } | null;
+    clinic_name: string;
+    clinic_status: string;
+    trial_ends_at: string | null;
+    plan: {
+        id: string;
+        name: string;
+        description: string | null;
+        price: number;
+        billing_interval: string;
+        features: unknown;
+        max_doctors: number;
+        max_branches: number;
+        is_active: boolean;
+    } | null;
 };
 
 async function getClinicContext() {
@@ -138,6 +140,7 @@ export async function createClinicStaff(input: {
 
     const temporaryPassword = `${crypto.randomUUID()}-Aa1!`;
 
+    // Create Supabase Auth user.
     const { data: createdUser, error: createUserError } =
         await admin.auth.admin.createUser({
             email,
@@ -153,12 +156,13 @@ export async function createClinicStaff(input: {
     if (createUserError || !createdUser.user) {
         throw new Error(
             createUserError?.message ??
-                "Failed to create the staff account.",
+            "Failed to create the staff account.",
         );
     }
 
     const userId = createdUser.user.id;
 
+    // Create staff database record.
     const { error: staffError } = await admin.from("staff").insert({
         id: userId,
         clinic_id: clinicId,
@@ -176,34 +180,28 @@ export async function createClinicStaff(input: {
     }
 
     try {
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-
-        if (!appUrl) {
-            throw new Error("NEXT_PUBLIC_APP_URL is not configured.");
-        }
-
-        const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            {
-                auth: {
-                    autoRefreshToken: false,
-                    persistSession: false,
-                },
-            },
+        const emailTemplate = await getEmailTemplate(
+            "clinic_account_invitation",
+            clinicId,
         );
 
-        const { error: resetEmailError } =
-            await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: `${appUrl}/set-password`,
-            });
-
-        if (resetEmailError) {
-            return {
-                success: true,
-                warning: `The staff account was created, but the password setup email could not be sent: ${resetEmailError.message}`,
-            };
+        if (!emailTemplate) {
+            throw new Error(
+                "The clinic account invitation email template is not configured.",
+            );
         }
+        // Send custom Medora invitation email.
+        await sendEmail({
+            templateId: emailTemplate.id,
+            clinicId,
+            to: email,
+            recipientName: name,
+            resolverIds: {
+                id_clinic: clinicId,
+                id_staff: userId,
+            },
+        });
+
     } catch (error) {
         return {
             success: true,
@@ -219,7 +217,6 @@ export async function createClinicStaff(input: {
         message: `An account was created and a password setup email was sent to ${email}.`,
     };
 }
-
 /**
  * UPDATE
  */
@@ -414,37 +411,37 @@ export async function deleteClinicStaff(id: string) {
 }
 
 export async function getClinicSubscription(): Promise<ClinicSubscription> {
-  const { admin, clinicId } = await getClinicContext();
+    const { admin, clinicId } = await getClinicContext();
 
-  // 1. Get the clinic and its assigned subscription plan ID
-  const { data: clinic, error: clinicError } = await admin
-    .from("clinics")
-    .select("name, status, trial_ends_at, subscription_plan_id")
-    .eq("id", clinicId)
-    .single();
+    // 1. Get the clinic and its assigned subscription plan ID
+    const { data: clinic, error: clinicError } = await admin
+        .from("clinics")
+        .select("name, status, trial_ends_at, subscription_plan_id")
+        .eq("id", clinicId)
+        .single();
 
-  if (clinicError) {
-    throw new Error(clinicError.message);
-  }
+    if (clinicError) {
+        throw new Error(clinicError.message);
+    }
 
-  if (!clinic) {
-    throw new Error("Clinic not found.");
-  }
+    if (!clinic) {
+        throw new Error("Clinic not found.");
+    }
 
-  // 2. If no plan is assigned, return the clinic without a plan
-  if (!clinic.subscription_plan_id) {
-    return {
-      clinic_name: clinic.name,
-      clinic_status: clinic.status,
-      trial_ends_at: clinic.trial_ends_at,
-      plan: null,
-    };
-  }
+    // 2. If no plan is assigned, return the clinic without a plan
+    if (!clinic.subscription_plan_id) {
+        return {
+            clinic_name: clinic.name,
+            clinic_status: clinic.status,
+            trial_ends_at: clinic.trial_ends_at,
+            plan: null,
+        };
+    }
 
-  // 3. Fetch the assigned subscription plan
-  const { data: plan, error: planError } = await admin
-    .from("subscription_plans")
-    .select(`
+    // 3. Fetch the assigned subscription plan
+    const { data: plan, error: planError } = await admin
+        .from("subscription_plans")
+        .select(`
       id,
       name,
       description,
@@ -455,18 +452,18 @@ export async function getClinicSubscription(): Promise<ClinicSubscription> {
       max_branches,
       is_active
     `)
-    .eq("id", clinic.subscription_plan_id)
-    .single();
+        .eq("id", clinic.subscription_plan_id)
+        .single();
 
-  if (planError) {
-    throw new Error(planError.message);
-  }
+    if (planError) {
+        throw new Error(planError.message);
+    }
 
-  // 4. Return the clinic and its subscription plan
-  return {
-    clinic_name: clinic.name,
-    clinic_status: clinic.status,
-    trial_ends_at: clinic.trial_ends_at,
-    plan,
-  };
+    // 4. Return the clinic and its subscription plan
+    return {
+        clinic_name: clinic.name,
+        clinic_status: clinic.status,
+        trial_ends_at: clinic.trial_ends_at,
+        plan,
+    };
 }

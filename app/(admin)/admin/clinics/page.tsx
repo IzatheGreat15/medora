@@ -17,6 +17,7 @@ import {
   Send,
   LoaderCircle,
 } from "lucide-react";
+import Toast, { ToastType } from "@/components/shared/Toast";
 
 type ClinicStatus = "Trial" | "Active" | "Inactive" | "Past due";
 
@@ -95,8 +96,21 @@ export default function ClinicsPage() {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [pageError, setPageError] = useState("");
-  const [toast, setToast] = useState("");
+  const [toast, setToast] = useState<{
+    message: string;
+    type: ToastType;
+  } | null>(null);
+
+  const showToast = useCallback(
+    (message: string, type: ToastType = "success") => {
+      setToast({ message, type });
+    },
+    [],
+  );
+
+  const closeToast = useCallback(() => {
+    setToast(null);
+  }, []);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -107,12 +121,9 @@ export default function ClinicsPage() {
 
   const [form, setForm] = useState<ClinicForm>(emptyForm);
   const [sendInvitation, setSendInvitation] = useState(true);
-  const [error, setError] = useState("");
 
   const loadClinics = useCallback(async () => {
     setLoading(true);
-    setPageError("");
-
     try {
       const response = await fetch("/api/admin/clinics", {
         cache: "no-store",
@@ -127,27 +138,20 @@ export default function ClinicsPage() {
       setClinics(result.clinics ?? []);
       setPlans(result.plans ?? []);
     } catch (loadError) {
-      setPageError(
+      showToast(
         loadError instanceof Error
           ? loadError.message
           : "Failed to load clinics.",
+        "error",
       );
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showToast]);
 
   useEffect(() => {
     void loadClinics();
   }, [loadClinics]);
-
-  useEffect(() => {
-    if (!toast) return;
-
-    const timeout = window.setTimeout(() => setToast(""), 4000);
-
-    return () => window.clearTimeout(timeout);
-  }, [toast]);
 
   const filteredClinics = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -182,7 +186,6 @@ export default function ClinicsPage() {
       planId: plans[0]?.id ?? "",
     });
     setSendInvitation(true);
-    setError("");
     setModalOpen(true);
   }
 
@@ -201,27 +204,24 @@ export default function ClinicsPage() {
       adminEmail: clinic.administrator.email,
     });
 
-    setError("");
     setModalOpen(true);
   }
 
   function closeModal() {
     setModalOpen(false);
     setEditingClinic(null);
-    setError("");
   }
 
   async function saveClinic(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError("");
 
     if (!form.name.trim() || !form.email.trim() || !form.planId) {
-      setError("Please complete all required clinic fields.");
+      showToast("Please complete all required clinic fields.", "error");
       return;
     }
 
     if (form.status === "Trial" && !form.trialEndsAt) {
-      setError("Please select an end date for the trial.");
+      showToast("Please select an end date for the trial.", "error");
       return;
     }
 
@@ -231,7 +231,7 @@ export default function ClinicsPage() {
         !form.adminLastName.trim() ||
         !form.adminEmail.trim()
       ) {
-        setError("Please complete all administrator details.");
+        showToast("Please complete all administrator details.", "error");
         return;
       }
     }
@@ -274,7 +274,7 @@ export default function ClinicsPage() {
       await loadClinics();
       closeModal();
 
-      setToast(
+      showToast(
         wasEditing
           ? "Clinic updated successfully."
           : sendInvitation
@@ -282,10 +282,11 @@ export default function ClinicsPage() {
             : "Clinic created successfully.",
       );
     } catch (saveError) {
-      setError(
+      showToast(
         saveError instanceof Error
           ? saveError.message
           : "Unable to save the clinic.",
+        "error",
       );
     } finally {
       setSaving(false);
@@ -295,7 +296,6 @@ export default function ClinicsPage() {
   async function deleteClinic() {
     if (!deleteTarget) return;
 
-    setPageError("");
     setSaving(true);
 
     try {
@@ -314,12 +314,13 @@ export default function ClinicsPage() {
 
       setDeleteTarget(null);
       await loadClinics();
-      setToast(`${deletedName} has been deactivated.`);
+      showToast(`${deletedName} has been deactivated.`);
     } catch (deleteError) {
-      setPageError(
+      showToast(
         deleteError instanceof Error
           ? deleteError.message
           : "Unable to deactivate clinic.",
+        "error",
       );
     } finally {
       setSaving(false);
@@ -329,36 +330,11 @@ export default function ClinicsPage() {
   return (
     <div className="space-y-6">
       {toast && (
-        <div
-          role="status"
-          className="fixed right-4 top-4 z-[100] rounded-xl bg-[#173F35] px-5 py-3 text-sm font-medium text-white shadow-lg"
-        >
-          {toast}
-          <button
-            type="button"
-            onClick={() => setToast("")}
-            aria-label="Dismiss notification"
-            className="ml-4"
-          >
-            ×
-          </button>
-        </div>
-      )}
-
-      {pageError && (
-        <div
-          role="alert"
-          className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-        >
-          {pageError}
-          <button
-            type="button"
-            onClick={() => void loadClinics()}
-            className="ml-3 font-semibold underline"
-          >
-            Retry
-          </button>
-        </div>
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={closeToast}
+        />
       )}
 
       {loading ? (
@@ -986,15 +962,6 @@ export default function ClinicsPage() {
                     </label>
                   </section>
                 </>
-              )}
-
-              {error && (
-                <p
-                  role="alert"
-                  className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-                >
-                  {error}
-                </p>
               )}
 
               <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
