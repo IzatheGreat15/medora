@@ -7,11 +7,9 @@ import {
   Building2,
   CalendarCheck,
   CalendarClock,
-  CalendarDays,
   CalendarX,
   Check,
   ChevronDown,
-  CreditCard,
   Clock,
   ImagePlus,
   Mail,
@@ -21,14 +19,12 @@ import {
   Users,
   X,
 } from "lucide-react";
-import StaffSection from "@/components/settings/StaffSection";
 import { ClinicSubscription, getClinicSubscription } from "@/components/settings/actions";
 import {
   getClinicSettings,
   saveClinicSettings,
   type ClinicNotificationPreference,
 } from "@/components/settings/settings-data-actions";
-import EmailTemplatesSection from "@/components/settings/email-templates/EmailTemplatesSection";
 
 type NotificationEvent = {
   id: string;
@@ -885,13 +881,7 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      <EmailTemplatesSection />
-
-      {/* Staff section is maintained as a separate component */}
-      <StaffSection />
-
       {/* Current subscription plan */}
-
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
         <div className="space-y-5 p-5 sm:p-6">
           {isLoadingSubscription ? (
