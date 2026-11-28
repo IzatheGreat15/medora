@@ -66,7 +66,7 @@ export async function sendEmail({
     const resolvedVariables = await resolveEmailVariables({
       ...resolverIds,
       ...(clinicId ? { id_clinic: clinicId } : {}),
-    });
+    }, template.body);
 
     // Explicit variables override automatically resolved variables.
     const finalVariables = {

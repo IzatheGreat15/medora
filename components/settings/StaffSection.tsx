@@ -25,9 +25,18 @@ import {
   deleteClinicStaff,
   type ClinicStaffMember,
 } from "./actions";
+import Toast, { ToastType } from "../shared/Toast";
 
 type StaffStatus = "Active" | "Inactive";
 type StaffMember = ClinicStaffMember;
+
+type ConfirmationState = {
+  title: string;
+  message: string;
+  confirmLabel: string;
+  isDanger?: boolean;
+  onConfirm: () => Promise<void>;
+};
 
 export default function StaffSection() {
   const [staff, setStaff] = useState<StaffMember[]>([]);
@@ -37,15 +46,29 @@ export default function StaffSection() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [confirmation, setConfirmation] = useState<ConfirmationState | null>(null);
+  const [isConfirming, setIsConfirming] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [formError, setFormError] = useState("");
-  const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState<"success" | "error">("success");
+  const [toast, setToast] = useState<{
+    message: string;
+    type: ToastType;
+  } | null>(null);
+
+  const closeToast = useCallback(() => {
+    setToast(null);
+  }, []);
+
+  const showToast = useCallback(
+    (message: string, type: ToastType = "success") => {
+      setToast({ message, type });
+    },
+    [],
+  );
 
   const loadStaff = useCallback(async () => {
     setIsLoading(true);
@@ -56,17 +79,16 @@ export default function StaffSection() {
     } catch (error) {
       console.error("Failed to load clinic staff:", error);
 
-      setMessage(
+      showToast(
         error instanceof Error
           ? error.message
           : "Something went wrong while loading staff.",
+        "error",
       );
-
-      setMessageType("error");
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [showToast]);
 
   useEffect(() => {
     void loadStaff();
@@ -89,20 +111,10 @@ export default function StaffSection() {
     });
   }, [staff, search, statusFilter]);
 
-  function showMessage(
-    text: string,
-    type: "success" | "error" = "success",
-  ) {
-    setMessage(text);
-    setMessageType(type);
-  }
-
   function openAddModal() {
     setEditingStaff(null);
     setName("");
     setEmail("");
-    setFormError("");
-    setMessage("");
     setIsModalOpen(true);
   }
 
@@ -110,8 +122,6 @@ export default function StaffSection() {
     setEditingStaff(member);
     setName(member.name);
     setEmail(member.email);
-    setFormError("");
-    setMessage("");
     setIsModalOpen(true);
   }
 
@@ -122,21 +132,18 @@ export default function StaffSection() {
     setEditingStaff(null);
     setName("");
     setEmail("");
-    setFormError("");
   }
 
   async function handleSaveStaff(
     event: React.FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
-    setFormError("");
-    setMessage("");
 
     const cleanName = name.trim();
     const cleanEmail = email.trim().toLowerCase();
 
     if (!cleanName || !cleanEmail) {
-      setFormError("Enter the staff member's name and email.");
+      showToast("Enter the staff member's name and email.", "error");
       return;
     }
 
@@ -147,7 +154,7 @@ export default function StaffSection() {
     );
 
     if (duplicateEmail) {
-      setFormError("A staff member with this email already exists.");
+      showToast("A staff member with this email already exists.", "error");
       return;
     }
 
@@ -170,7 +177,7 @@ export default function StaffSection() {
         setName("");
         setEmail("");
 
-        showMessage(result.message || `${cleanName}'s details were updated.`);
+        showToast(result.message || `${cleanName}'s details were updated.`);
 
         await loadStaff();
       } else {
@@ -188,7 +195,7 @@ export default function StaffSection() {
         setName("");
         setEmail("");
 
-        showMessage(
+        showToast(
           result.warning ||
             result.message ||
             `${cleanName} was added successfully. An invitation email will be sent.`,
@@ -199,30 +206,23 @@ export default function StaffSection() {
     } catch (error) {
       console.error("Failed to save staff member:", error);
 
-      setFormError(
+      showToast(
         error instanceof Error
           ? error.message
           : "Something went wrong. Please try again.",
+        "error",
       );
     } finally {
       setIsSaving(false);
     }
   }
 
-  async function toggleStatus(member: StaffMember) {
+  async function executeToggleStatus(member: StaffMember) {
     const nextStatus: StaffStatus =
       member.status === "Active" ? "Inactive" : "Active";
-
     const action = nextStatus === "Inactive" ? "deactivate" : "activate";
 
-    const confirmed = window.confirm(
-      `Are you sure you want to ${action} ${member.name}?`,
-    );
-
-    if (!confirmed) return;
-
     setProcessingId(member.id);
-    setMessage("");
 
     try {
       const result = await updateClinicStaffStatus({
@@ -234,7 +234,7 @@ export default function StaffSection() {
         throw new Error(result.message || `Failed to ${action} staff member.`);
       }
 
-      showMessage(
+      showToast(
         result.message ||
           `${member.name} was ${nextStatus === "Active" ? "activated" : "deactivated"} successfully.`,
       );
@@ -242,8 +242,7 @@ export default function StaffSection() {
       await loadStaff();
     } catch (error) {
       console.error("Failed to update staff status:", error);
-
-      showMessage(
+      showToast(
         error instanceof Error
           ? error.message
           : "Something went wrong while updating staff status.",
@@ -254,15 +253,22 @@ export default function StaffSection() {
     }
   }
 
-  async function handleDeleteStaff(member: StaffMember) {
-    const confirmed = window.confirm(
-      `Are you sure you want to permanently delete ${member.name}? This action cannot be undone.`,
-    );
+  function toggleStatus(member: StaffMember) {
+    const nextStatus: StaffStatus =
+      member.status === "Active" ? "Inactive" : "Active";
+    const action = nextStatus === "Inactive" ? "Deactivate" : "Activate";
 
-    if (!confirmed) return;
+    setConfirmation({
+      title: `${action} staff member?`,
+      message: `Are you sure you want to ${action.toLowerCase()} ${member.name}?`,
+      confirmLabel: action,
+      isDanger: nextStatus === "Inactive",
+      onConfirm: () => executeToggleStatus(member),
+    });
+  }
 
+  async function executeDeleteStaff(member: StaffMember) {
     setProcessingId(member.id);
-    setMessage("");
 
     try {
       const result = await deleteClinicStaff(member.id);
@@ -271,13 +277,11 @@ export default function StaffSection() {
         throw new Error(result.message || "Failed to delete staff member.");
       }
 
-      showMessage(result.message || `${member.name} was deleted successfully.`);
-
+      showToast(result.message || `${member.name} was deleted successfully.`);
       await loadStaff();
     } catch (error) {
       console.error("Failed to delete staff member:", error);
-
-      showMessage(
+      showToast(
         error instanceof Error
           ? error.message
           : "Something went wrong while deleting staff.",
@@ -288,8 +292,39 @@ export default function StaffSection() {
     }
   }
 
+  function handleDeleteStaff(member: StaffMember) {
+    setConfirmation({
+      title: "Delete staff member?",
+      message: `Are you sure you want to permanently delete ${member.name}? This action cannot be undone.`,
+      confirmLabel: "Delete staff",
+      isDanger: true,
+      onConfirm: () => executeDeleteStaff(member),
+    });
+  }
+
+  async function handleConfirmAction() {
+    if (!confirmation || isConfirming) return;
+
+    setIsConfirming(true);
+    try {
+      await confirmation.onConfirm();
+      setConfirmation(null);
+    } finally {
+      setIsConfirming(false);
+    }
+  }
+
+
   return (
     <>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={closeToast}
+        />
+      )}
+
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
         {/* Section header */}
         <div className="flex flex-col gap-4 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
@@ -366,25 +401,6 @@ export default function StaffSection() {
               </div>
             </div>
           </div>
-
-          {/* Feedback */}
-          {message && (
-            <div
-              role="status"
-              className={`mt-4 flex items-start gap-2 rounded-xl border p-3 text-sm ${
-                messageType === "success"
-                  ? "border-[#B9DCC8] bg-[#DDF3E7] text-[#173F35]"
-                  : "border-red-200 bg-red-50 text-red-700"
-              }`}
-            >
-              {messageType === "success" ? (
-                <Check size={17} className="mt-0.5 shrink-0" />
-              ) : (
-                <X size={17} className="mt-0.5 shrink-0" />
-              )}
-              <p>{message}</p>
-            </div>
-          )}
 
           {/* Loading */}
           {isLoading ? (
@@ -678,11 +694,6 @@ export default function StaffSection() {
                   </p>
                 </div>
 
-                {formError && (
-                  <p role="alert" className="text-sm text-red-600">
-                    {formError}
-                  </p>
-                )}
               </div>
 
               {/* Modal footer */}
@@ -717,6 +728,73 @@ export default function StaffSection() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation modal */}
+      {confirmation && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !isConfirming) {
+              setConfirmation(null);
+            }
+          }}
+        >
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="staff-confirmation-title"
+            aria-describedby="staff-confirmation-message"
+            className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl"
+          >
+            <div className={`mb-4 flex h-11 w-11 items-center justify-center rounded-full ${
+              confirmation.isDanger
+                ? "bg-red-50 text-red-600"
+                : "bg-[#DDF3E7] text-[#176B55]"
+            }`}>
+              <ShieldCheck size={22} />
+            </div>
+
+            <h3
+              id="staff-confirmation-title"
+              className="text-lg font-semibold text-[#173F35]"
+            >
+              {confirmation.title}
+            </h3>
+            <p
+              id="staff-confirmation-message"
+              className="mt-2 text-sm leading-6 text-slate-500"
+            >
+              {confirmation.message}
+            </p>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmation(null)}
+                disabled={isConfirming}
+                className="h-10 rounded-xl border border-slate-200 px-4 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmAction}
+                disabled={isConfirming}
+                className={`inline-flex h-10 min-w-[108px] items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                  confirmation.isDanger
+                    ? "bg-red-600 hover:bg-red-700"
+                    : "bg-[#176B55] hover:bg-[#173F35]"
+                }`}
+              >
+                {isConfirming && (
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                )}
+                {isConfirming ? "Processing..." : confirmation.confirmLabel}
+              </button>
+            </div>
           </div>
         </div>
       )}

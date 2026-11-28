@@ -6,13 +6,14 @@ import {
   getBookingEditOptions,
   getPendingBookingEditSlots,
   updatePendingBooking,
+  createBooking,
   type BookingEditOptions,
   type DashboardBooking,
 } from "@/app/(dashboard)/bookings/actions";
 import { X, Loader2, CalendarDays, Clock3 } from "lucide-react";
 
 type Props = {
-  booking: DashboardBooking;
+  booking: DashboardBooking | null;
   onClose: () => void;
   onSaved: () => Promise<void>;
   onMessage: (message: string, type: "success" | "error") => void;
@@ -28,13 +29,13 @@ export default function EditBookingModal({
   const [branchId, setBranchId] = useState("");
   const [serviceId, setServiceId] = useState("");
   const [doctorId, setDoctorId] = useState("");
-  const [date, setDate] = useState(booking.date);
+  const [date, setDate] = useState(booking?.date ?? new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" }));
   const [time, setTime] = useState("");
   const [slots, setSlots] = useState<string[]>([]);
-  const [fullName, setFullName] = useState(booking.patient);
-  const [email, setEmail] = useState(booking.email);
-  const [phone, setPhone] = useState(booking.phone);
-  const [notes, setNotes] = useState(booking.notes);
+  const [fullName, setFullName] = useState(booking?.patient ?? "");
+  const [email, setEmail] = useState(booking?.email ?? "");
+  const [phone, setPhone] = useState(booking?.phone ?? "");
+  const [notes, setNotes] = useState(booking?.notes ?? "");
 
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -51,21 +52,21 @@ export default function EditBookingModal({
 
         setOptions(result);
 
-        const initialBranch = result.branches.find(
-          (item) => item.name === booking.branch,
-        );
+        if (booking) {
+          const initialBranch = result.branches.find(
+            (item) => item.name === booking.branch,
+          );
+          const initialService = result.services.find(
+            (item) => item.name === booking.service,
+          );
+          const initialDoctor = result.doctors.find(
+            (item) => item.name === booking.doctor,
+          );
 
-        const initialService = result.services.find(
-          (item) => item.name === booking.service,
-        );
-
-        const initialDoctor = result.doctors.find(
-          (item) => item.name === booking.doctor,
-        );
-
-        setBranchId(initialBranch?.id ?? "");
-        setServiceId(initialService?.id ?? "");
-        setDoctorId(initialDoctor?.id ?? "");
+          setBranchId(initialBranch?.id ?? "");
+          setServiceId(initialService?.id ?? "");
+          setDoctorId(initialDoctor?.id ?? "");
+        }
       } catch (error) {
         onMessage(
           error instanceof Error ? error.message : "Unable to load booking options.",
@@ -151,7 +152,7 @@ export default function EditBookingModal({
       setTime("");
 
       try {
-        const result = await getPendingBookingEditSlots(booking.id, {
+        const result = await getPendingBookingEditSlots(booking?.id ?? null, {
           branchId,
           serviceId,
           doctorId,
@@ -180,7 +181,7 @@ export default function EditBookingModal({
     return () => {
       active = false;
     };
-  }, [booking.id, branchId, serviceId, doctorId, date, onMessage]);
+  }, [booking?.id, branchId, serviceId, doctorId, date, onMessage]);
 
   function handleBranchChange(value: string) {
     setBranchId(value);
@@ -206,8 +207,7 @@ export default function EditBookingModal({
     setSaving(true);
 
     try {
-      await updatePendingBooking({
-        bookingId: booking.id,
+      const input = {
         branchId,
         serviceId,
         doctorId,
@@ -219,13 +219,26 @@ export default function EditBookingModal({
           phone,
           notes,
         },
-      });
+      };
 
-      onMessage("Booking updated successfully.", "success");
+      if (booking) {
+        await updatePendingBooking({
+          bookingId: booking.id,
+          ...input,
+        });
+        onMessage("Booking updated successfully.", "success");
+      } else {
+        await createBooking(input);
+        onMessage("Booking created successfully.", "success");
+      }
       await onSaved();
     } catch (error) {
       onMessage(
-        error instanceof Error ? error.message : "Unable to update booking.",
+        error instanceof Error
+          ? error.message
+          : booking
+            ? "Unable to update booking."
+            : "Unable to create booking.",
         "error",
       );
     } finally {
@@ -250,13 +263,15 @@ export default function EditBookingModal({
         <div className="flex items-start justify-between border-b border-slate-100 px-6 py-5">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-              Pending booking
+              {booking ? "Pending booking" : "New booking"}
             </p>
             <h2 className="mt-1 text-xl font-bold text-[#173F35]">
-              Edit booking
+              {booking ? "Edit booking" : "Add booking"}
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              You can make changes while this booking is pending.
+              {booking
+                ? "You can make changes while this booking is pending."
+                : "Enter the patient's details and choose an available appointment."}
             </p>
           </div>
 
@@ -483,7 +498,9 @@ export default function EditBookingModal({
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#176B55] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#173F35] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {saving && <Loader2 size={16} className="animate-spin" />}
-              {saving ? "Saving changes..." : "Save changes"}
+              {saving
+                ? booking ? "Saving changes..." : "Creating booking..."
+                : booking ? "Save changes" : "Create booking"}
             </button>
           </div>
         </form>

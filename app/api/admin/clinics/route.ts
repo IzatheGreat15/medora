@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
 import { requirePlatformAdmin } from "@/lib/auth/require-platform-admin";
+import { sendEmail } from "@/lib/email/send-email";
+import { getEmailTemplate } from "@/lib/email/render-email-template";
 
 const statusMap: Record<string, string> = {
     Trial: "trial",
@@ -282,7 +284,7 @@ export async function POST(request: NextRequest) {
             }
 
             const userId = createdUser.user.id;
-
+            invitedUserId = userId;
 
             const { error: staffError } = await admin.from("staff").insert({
                 id: userId,
@@ -301,26 +303,31 @@ export async function POST(request: NextRequest) {
                 throw new Error(staffError.message);
             }
 
-            const { createClient } = await import("@supabase/supabase-js");
-            const supabase = createClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-                {
-                    auth: {
-                        autoRefreshToken: false,
-                        persistSession: false,
-                    },
-                }
+            const emailTemplate = await getEmailTemplate(
+                "clinic_account_invitation",
+                clinicId,
             );
 
-            const { error: resetEmailError } =
-                await supabase.auth.resetPasswordForEmail(ownerEmail, {
-                    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/set-password`,
-                });
-
-            if (resetEmailError) {
+            if (!emailTemplate) {
                 throw new Error(
-                    `The account was created, but the password reset email could not be sent: ${resetEmailError.message}`
+                    "The clinic account invitation email template is not configured.",
+                );
+            }
+
+            const emailResult = await sendEmail({
+                templateId: emailTemplate.id,
+                clinicId: clinic.id,
+                to: ownerEmail,
+                recipientName: `${firstName} ${lastName}`.trim(),
+                resolverIds: {
+                    id_clinic: clinic.id,
+                    id_staff: userId,
+                },
+            });
+
+            if (!emailResult.success) {
+                throw new Error(
+                    emailResult.error ?? "The clinic was created, but the invitation email could not be sent."
                 );
             }
         }
